@@ -82,15 +82,10 @@ def build_panels(sections):
             f'      <section class="panel" data-step="{n}">\n'
             f'        <div class="section-tag">{html_lib.escape(tag)}</div>\n'
             f'        <h1>{html_lib.escape(title)}</h1>\n'
-            f'        <div class="md">\n{indent(body_html, 10)}\n        </div>\n'
+            f'        <div class="md">\n{body_html}\n        </div>\n'
             f"      </section>"
         )
     return "\n\n".join(panels)
-
-
-def indent(text: str, spaces: int) -> str:
-    pad = " " * spaces
-    return "\n".join((pad + line if line.strip() else line) for line in text.splitlines())
 
 
 TEMPLATE = """<!DOCTYPE html>
