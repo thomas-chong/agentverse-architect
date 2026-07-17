@@ -12,27 +12,59 @@ handle_error() {
 PROJECT_FILE="$HOME/project_id.txt"
 PROJECT_ID_SET=false
 
-# Check if a project ID file already exists and points to a valid project
-if [ -s "$PROJECT_FILE" ]; then
-    EXISTING_PROJECT_ID=$(cat "$PROJECT_FILE" | tr -d '[:space:]') # Read and trim whitespace
-    echo "--- Found existing project ID in $PROJECT_FILE: $EXISTING_PROJECT_ID ---"
+# Helper: verify a project exists in GCP and, if so, adopt it for this session.
+# Looks for a project ID from (in priority order):
+#   1. $GOOGLE_CLOUD_PROJECT env var (e.g. an assigned/Qwiklabs project)
+#   2. The currently active `gcloud config` project
+#   3. ~/project_id.txt written by a previous run
+# Only if none of those resolve to a valid project do we fall back to creating one.
+resolve_project() {
+    local candidate=""
+
+    # 1. Environment variable (commonly set by Qwiklabs / event provisioning)
+    if [[ -n "$GOOGLE_CLOUD_PROJECT" ]]; then
+        candidate="$GOOGLE_CLOUD_PROJECT"
+        echo "--- Found project ID in \$GOOGLE_CLOUD_PROJECT: $candidate ---"
+    # 2. Currently active gcloud project
+    elif ACTIVE_CONFIG_PROJECT=$(gcloud config get-value project 2>/dev/null) && [[ -n "$ACTIVE_CONFIG_PROJECT" && "$ACTIVE_CONFIG_PROJECT" != "(unset)" ]]; then
+        candidate="$ACTIVE_CONFIG_PROJECT"
+        echo "--- Found active project in gcloud config: $candidate ---"
+    # 3. Previously saved project ID file
+    elif [[ -s "$PROJECT_FILE" ]]; then
+        candidate=$(cat "$PROJECT_FILE" | tr -d '[:space:]')
+        echo "--- Found existing project ID in $PROJECT_FILE: $candidate ---"
+    fi
+
+    if [[ -z "$candidate" ]]; then
+        return 1  # nothing to try; caller will create a new project
+    fi
+
     echo "Verifying this project exists in Google Cloud..."
-
-    # Check if the project actually exists in GCP and we have permission to see it
-    if gcloud projects describe "$EXISTING_PROJECT_ID" --quiet >/dev/null 2>&1; then
-        echo "Project '$EXISTING_PROJECT_ID' successfully verified."
-        FINAL_PROJECT_ID=$EXISTING_PROJECT_ID
+    if gcloud projects describe "$candidate" --quiet >/dev/null 2>&1; then
+        echo "Project '$candidate' successfully verified."
+        FINAL_PROJECT_ID=$candidate
         PROJECT_ID_SET=true
-
-        # Ensure gcloud config is set to this project for the current session
         gcloud config set project "$FINAL_PROJECT_ID" || handle_error "Failed to set active project to '$FINAL_PROJECT_ID'."
         echo "Set active gcloud project to '$FINAL_PROJECT_ID'."
+        # Persist (or refresh) the file so subsequent runs reuse it directly.
+        echo "$FINAL_PROJECT_ID" > "$PROJECT_FILE" || handle_error "Failed to save project ID to $PROJECT_FILE."
+        # Qwiklabs/assigned projects come with billing pre-attached; record that hint for the billing script.
+        if [[ "$FINAL_PROJECT_ID" == qwiklabs-gcp-* ]]; then
+            echo "Detected a Qwiklabs-assigned project. Billing is typically already enabled."
+        fi
+        return 0
     else
-        echo "Warning: Project '$EXISTING_PROJECT_ID' from file does not exist or you lack permissions."
-        echo "Removing invalid reference file and proceeding with new project creation."
-        rm "$PROJECT_FILE"
+        echo "Warning: Project '$candidate' does not exist or you lack permissions."
+        # Only clear a stale file — never touch the env var / gcloud config.
+        if [[ -s "$PROJECT_FILE" ]] && [[ "$(cat "$PROJECT_FILE" | tr -d '[:space:]')" == "$candidate" ]]; then
+            echo "Removing invalid reference file and proceeding with new project creation."
+            rm -f "$PROJECT_FILE"
+        fi
+        return 1
     fi
-fi
+}
+
+resolve_project
 
 # If no valid existing project was found, start the interactive creation process
 if [ "$PROJECT_ID_SET" = false ]; then

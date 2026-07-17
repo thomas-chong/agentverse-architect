@@ -117,6 +117,31 @@ if __name__ == "__main__":
         print("\nScript finished with a critical error: Could not determine Project ID.")
     else:
         billing_client = billing_v1.CloudBillingClient()
+
+        # --- Early exit: is billing already enabled on this project? ---
+        # Assigned/managed projects (e.g. Qwiklabs `qwiklabs-gcp-*`) come with
+        # billing pre-linked by the platform. The student account typically cannot
+        # list/own the billing account, so the link-and-retry path below just loops
+        # forever. Check the project's billing status directly first.
+        project_resource = f"projects/{project_id}"
+        try:
+            print(f"\nChecking current billing status for project '{project_id}'...")
+            current_info = billing_client.get_project_billing_info(name=project_resource)
+            if getattr(current_info, "billing_enabled", False):
+                ba = getattr(current_info, "billing_account_name", "") or "unknown"
+                print(f"Success: Billing is already enabled on project '{project_id}'.")
+                print(f"Linked billing account: {ba}")
+                print("\n--- Full Setup Complete ---")
+                exit(0)
+            else:
+                print("Billing is not yet enabled on this project. Proceeding to find/link an account.")
+        except exceptions.NotFound:
+            print("Project is not currently linked to any billing account. Proceeding to find/link an account.")
+        except Exception as e:
+            # Don't hard-fail here — fall through to the existing list/link flow.
+            print(f"\nCould not read project billing info directly ({e}).")
+            print("Falling back to listing billing accounts.")
+
         accounts_result = get_billing_accounts(billing_client)
 
         if accounts_result == "API_DISABLED_OR_NO_PERMISSION":

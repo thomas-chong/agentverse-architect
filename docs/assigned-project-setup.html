@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentverse Architect — Patched Codelab Reader</title>
+  <meta name="description" content="Mirrored Agentverse Architect codelab with a patched init.sh / billing flow for assigned (Qwiklabs) projects.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <style>
+    :root {
+      --blue:#1a73e8; --blue-dark:#1557b0; --blue-soft:#e8f0fe;
+      --gray-bg:#f8f9fa; --gray-line:#e0e0e0; --gray-text:#5f6368;
+      --text:#202124; --green:#1e8e3e; --red:#d93025; --amber:#f9ab00;
+      --font:'Google Sans Text','Google Sans',Roboto,Arial,sans-serif;
+      --display:'Google Sans',Roboto,Arial,sans-serif;
+      --mono:'Google Sans Code','JetBrains Mono',monospace;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;height:100%;}
+    body{font-family:var(--font);color:var(--text);background:var(--gray-bg);font-size:15px;line-height:1.6;}
+
+    #topbar{display:flex;align-items:center;justify-content:space-between;height:64px;padding:0 24px;background:#fff;border-bottom:1px solid var(--gray-line);position:sticky;top:0;z-index:100;}
+    .brand{display:flex;align-items:center;gap:12px;}
+    .gcloud-logo{width:28px;height:28px;background:linear-gradient(135deg,#4285f4,#1a73e8);border-radius:6px;position:relative;}
+    .gcloud-logo::after{content:"";position:absolute;inset:6px;background:#fff;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);}
+    .brand .title{font-family:var(--display);font-weight:500;font-size:18px;}
+    .brand .title b{font-weight:700;}
+    .topbar-right{display:flex;align-items:center;gap:20px;color:var(--gray-text);}
+    .lang{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;}
+    .avatar{width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:var(--display);}
+
+    #app{display:flex;min-height:calc(100vh - 64px);}
+    #sidebar{width:300px;background:#fff;border-right:1px solid var(--gray-line);padding:20px 0;flex-shrink:0;align-self:flex-start;position:sticky;top:64px;max-height:calc(100vh - 64px);overflow-y:auto;}
+    .step{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;color:var(--gray-text);border-left:4px solid transparent;transition:background .12s;}
+    .step:hover{background:#f1f3f4;}
+    .step .num{width:26px;height:26px;border-radius:50%;background:#e8eaed;color:var(--gray-text);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;font-family:var(--display);}
+    .step .label{font-size:14px;}
+    .step.active{background:var(--blue-soft);color:var(--blue-dark);border-left-color:var(--blue);}
+    .step.active .num{background:var(--blue);color:#fff;}
+    .step.done .num{background:var(--green);color:#fff;}
+
+    #main{flex:1;max-width:860px;margin:0 auto;padding:40px 56px 120px;background:#fff;}
+    .panel{display:none;}
+    .panel.active{display:block;animation:fade .2s ease;}
+    @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+    .section-tag{font-family:var(--display);font-size:13px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+    h1{font-family:var(--display);font-size:32px;font-weight:700;margin:0 0 8px;line-height:1.25;}
+
+    /* Rendered Markdown body */
+    .md > *:first-child{margin-top:0;}
+    .md p{margin:0 0 16px;}
+    .md .lead,.md p.lead{font-size:16px;color:#3c4043;}
+    .md strong{font-weight:700;}
+    .md a{color:var(--blue);text-decoration:none;}
+    .md a:hover{text-decoration:underline;}
+    .md h2{font-family:var(--display);font-size:24px;font-weight:700;margin:32px 0 12px;}
+    .md h3{font-family:var(--display);font-size:19px;font-weight:700;margin:26px 0 10px;}
+    .md h4{font-family:var(--display);font-size:16px;font-weight:700;margin:20px 0 8px;color:var(--gray-text);text-transform:uppercase;letter-spacing:.4px;}
+    .md ul,.md ol{margin:0 0 16px;padding-left:24px;}
+    .md li{margin:6px 0;}
+    .md img{max-width:100%;height:auto;border-radius:10px;border:1px solid var(--gray-line);display:block;margin:16px 0;background:var(--gray-bg);}
+    .md blockquote{margin:18px 0;padding:16px 20px;border-left:4px solid var(--amber);background:#fef7e0;border-radius:0 10px 10px 0;color:#5f4915;}
+    .md blockquote p{margin:6px 0;}
+    .md blockquote h3{margin-top:0;color:#b06000;}
+    .md code{font-family:var(--mono);font-size:13px;background:#f1f3f4;padding:2px 6px;border-radius:4px;}
+    .md pre{background:#0d1117;border:1px solid var(--gray-line);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:12px 0 20px;position:relative;}
+    .md pre code{background:transparent;padding:0;font-size:13px;line-height:1.6;color:#e8eaed;}
+    .md pre:hover > .copy-btn{opacity:1;}
+    .copy-btn{position:absolute;top:8px;right:8px;font-family:var(--display);font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#e8eaed;cursor:pointer;opacity:0;transition:opacity .12s,background .12s;backdrop-filter:blur(4px);}
+    .copy-btn:hover{background:rgba(255,255,255,.18);}
+    .copy-btn.copied{background:var(--green);border-color:var(--green);color:#fff;opacity:1;}
+    .md hr{border:none;border-top:1px solid var(--gray-line);margin:24px 0;}
+    .md table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px;}
+    .md th,.md td{border:1px solid var(--gray-line);padding:8px 10px;text-align:left;}
+    .md th{background:var(--gray-bg);font-family:var(--display);font-weight:700;}
+
+    #nav{display:flex;justify-content:space-between;align-items:center;margin-top:48px;padding-top:24px;border-top:1px solid var(--gray-line);}
+    .btn{font-family:var(--display);font-size:14px;font-weight:700;padding:10px 28px;border-radius:6px;border:1px solid var(--gray-line);cursor:pointer;background:#fff;color:var(--gray-text);transition:all .12s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
+    .btn:hover:not([disabled]){background:#f1f3f4;}
+    .btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+    .btn.primary:hover:not([disabled]){background:var(--blue-dark);border-color:var(--blue-dark);}
+    .btn[disabled]{opacity:.4;cursor:not-allowed;}
+    .progress{font-family:var(--display);font-size:13px;color:var(--gray-text);font-weight:500;}
+
+    #footer{padding:16px 56px;color:var(--gray-text);font-size:13px;border-top:1px solid var(--gray-line);background:#fff;}
+    .report{display:flex;align-items:center;gap:6px;}
+    .report a{color:inherit;}
+
+    @media (max-width:840px){#sidebar{display:none;}#main{padding:32px 24px 80px;}}
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <div class="brand">
+      <div class="gcloud-logo"></div>
+      <div class="title">Google Cloud &nbsp;·&nbsp; <b>Agentverse Architect (Patched)</b></div>
+    </div>
+    <div class="topbar-right">
+      <div class="lang">🌐 English</div>
+      <div class="avatar">TC</div>
+    </div>
+  </div>
+
+  <div id="app">
+    <div id="sidebar">
+      <div class="step" data-step="1"><div class="num">1</div><div class="label">Overture</div></div>
+      <div class="step" data-step="2"><div class="num">2</div><div class="label">The Summoner&#x27;s Concord</div></div>
+      <div class="step" data-step="3"><div class="num">3</div><div class="label">Drawing the Summoning Circle 🛠️</div></div>
+      <div class="step" data-step="4"><div class="num">4</div><div class="label">Forging the Elemental Fonts</div></div>
+      <div class="step" data-step="5"><div class="num">5</div><div class="label">Summoning the Familiars</div></div>
+      <div class="step" data-step="6"><div class="num">6</div><div class="label">Command Locus (A2A)</div></div>
+      <div class="step" data-step="7"><div class="num">7</div><div class="label">Laws of Magic</div></div>
+      <div class="step" data-step="8"><div class="num">8</div><div class="label">Agent State &amp; Memory</div></div>
+      <div class="step" data-step="9"><div class="num">9</div><div class="label">The Boss Fight</div></div>
+      <div class="step" data-step="10"><div class="num">10</div><div class="label">Cleanup</div></div>
+    </div>
+
+    <div id="main">
+      <section class="panel" data-step="1">
+        <div class="section-tag">Step 1 · Official codelab</div>
+        <h1>Overture</h1>
+        <div class="md">
+          <p>The era of siloed development is ending. The next wave of technological evolution is not about solitary genius, but about collaborative mastery. Building a single, clever agent is a fascinating experiment. Building a robust, secure, and intelligent ecosystem of agents—a true Agentverse—is the grand challenge for the modern enterprise.</p>
+          <p>Success in this new era requires the convergence of four critical roles, the foundational pillars that support any thriving agentic system. A deficiency in any one area creates a weakness that can compromise the entire structure.</p>
+          <p>This workshop is the definitive enterprise playbook for mastering the agentic future on Google Cloud. We provide an end-to-end roadmap that guides you from the first vibe of an idea to a full-scale, operational reality. Across these four interconnected labs, you will learn how the specialized skills of a developer, architect, data engineer, and SRE must converge to create, manage, and scale a powerful Agentverse.</p>
+          <p>No single pillar can support the Agentverse alone. The Architect's grand design is useless without the Developer's precise execution. The Developer's agent is blind without the Data Engineer's wisdom, and the entire system is fragile without the SRE's protection. Only through synergy and a shared understanding of each other's roles can your team transform an innovative concept into a mission-critical, operational reality. Your journey begins here. Prepare to master your role and learn how you fit into the greater whole.</p>
+          <h3 id="welcome-to-the-agentverse-a-call-to-champions">Welcome to The Agentverse: A Call to Champions</h3>
+          <p>In the sprawling digital expanse of the enterprise, a new era has dawned. It is the agentic age, a time of immense promise, where intelligent, autonomous agents work in perfect harmony to accelerate innovation and sweep away the mundane.</p>
+          <p><img alt="agentverse.png" src="https://codelabs.developers.google.com/static/agentverse-architect/img/agentverse.png" /></p>
+          <p>This connected ecosystem of power and potential is known as The Agentverse.</p>
+          <p>But a creeping entropy, a silent corruption known as The Static, has begun to fray the edges of this new world. The Static is not a virus or a bug; it is the embodiment of chaos that preys on the very act of creation.</p>
+          <p>It amplifies old frustrations into monstrous forms, giving birth to the Seven Spectres of Development. If left unchecked, The Static and its Spectres will grind progress to a halt, turning the promise of the Agentverse into a wasteland of technical debt and abandoned projects.</p>
+          <p>Today, we issue a call for champions to push back the tide of chaos. We need heroes willing to master their craft and work together to protect the Agentverse. The time has come to choose your path.</p>
+          <h3 id="choose-your-class">Choose Your Class</h3>
+          <p>Four distinct paths lie before you, each a critical pillar in the fight against <strong>The Static</strong>. Though your training will be a solo mission, your ultimate success depends on understanding how your skills combine with others.</p>
+          <ul>
+          <li><strong>The Shadowblade (Developer)</strong>: A master of the forge and the front line. You are the artisan who crafts the blades, builds the tools, and faces the enemy in the intricate details of the code. Your path is one of precision, skill, and practical creation.</li>
+          <li><strong>The Summoner (Architect)</strong>: A grand strategist and orchestrator. You do not see a single agent, but the entire battlefield. You design the master blueprints that allow entire systems of agents to communicate, collaborate, and achieve a goal far greater than any single component.</li>
+          <li><strong>The Scholar (Data Engineer)</strong>: A seeker of hidden truths and the keeper of wisdom. You venture into the vast, untamed wilderness of data to uncover the intelligence that gives your agents purpose and sight. Your knowledge can reveal an enemy's weakness or empower an ally.</li>
+          <li><strong>The Guardian (DevOps / SRE)</strong>: The steadfast protector and shield of the realm. You build the fortresses, manage the supply lines of power, and ensure the entire system can withstand the inevitable attacks of The Static. Your strength is the foundation upon which your team's victory is built.</li>
+          </ul>
+          <h3 id="your-mission">Your Mission</h3>
+          <p>Your training will begin as a standalone exercise. You will walk your chosen path, learning the unique skills required to master your role. At the end of your trial, you will face a Spectre born of The Static—a mini-boss that preys on the specific challenges of your craft.</p>
+          <p>Only by mastering your individual role can you prepare for the final trial. You must then form a party with champions from the other classes. Together, you will venture into the heart of the corruption to face an ultimate boss.</p>
+          <p>A final, collaborative challenge that will test your combined strength and determine the fate of the Agentverse.</p>
+          <p>The Agentverse awaits its heroes. Will you answer the call?</p>
+        </div>
+      </section>
+
+      <section class="panel" data-step="2">
+        <div class="section-tag">Step 2 · Official codelab</div>
+        <h1>The Summoner&#x27;s Concord</h1>
+        <div class="md">
+          <p>Welcome, Summoner. Your path is one of vision and grand strategy. While others focus on a single blade or a single incantation, you see the entire battlefield. You do not command a single agent; you conduct an entire orchestra of them. Your power lies not in direct conflict, but in designing the flawless, overarching blueprint that allows a legion of specialists—your Familiars—to work in perfect harmony. This mission will test your ability to design, connect, and orchestrate a powerful, multi-agent system.</p>
+          <p><img alt="overview" src="https://codelabs.developers.google.com/static/agentverse-architect/img/02-00-overview.png" /></p>
+          <h3 id="what-youll-learn">What you'll learn</h3>
+          <ul>
+          <li><strong>Architect a Decoupled Tooling Ecosystem:</strong> Design and deploy a set of independent, microservice-based MCP Tool Servers. You will learn why this foundational layer is critical for creating scalable, maintainable, and secure agentic systems.</li>
+          <li><strong>Master Advanced Agentic Workflows:</strong> Go beyond single agents and build a legion of specialist "Familiars." You will master the core ADK workflow patterns—Sequential, Parallel, and Loop—and learn the architectural principles for choosing the right pattern for the right task.</li>
+          <li><strong>Implement an Intelligent Orchestrator:</strong> Ascend from a simple agent builder to a true systems architect. You will construct a master Orchestration Agent that uses the Agent-to-Agent (A2A) protocol to discover and delegate complex tasks to your specialist Familiars, creating a true multi-agent system.</li>
+          <li><strong>Enforce Rules with Code, Not Prompts:</strong> Learn to build more reliable and predictable agents by enforcing stateful rules of engagement. You will implement custom logic using the ADK's powerful Plugin and Callback system to manage real-world constraints like cooldown timers.</li>
+          <li><strong>Manage Agent State and Memory:</strong> Give your agents the ability to learn and remember. You will explore techniques for managing both short-term, conversational state and long-term, persistent memory to create more intelligent and context-aware interactions.</li>
+          <li><strong>Execute an End-to-End Cloud Deployment:</strong> Take your entire multi-agent system from a local prototype to a production-grade reality. You will learn how to containerize your agents and orchestrator and deploy them as a collection of scalable, independent microservices on Google Cloud Run.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="panel" data-step="3">
+        <div class="section-tag">Step 3 · 🛠️ Workshop Patch (only modified step)</div>
+        <h1>Drawing the Summoning Circle</h1>
+        <div class="md">
+          <p>Welcome, Summoner. Before a single Familiar can be called forth, before any pacts can be forged, the very ground upon which you stand must be prepared. An untamed environment is an invitation to chaos; a proper Summoner operates only within a sanctified, empowered space. Our first task is to draw the summoning circle: to inscribe the runes of power that awaken the necessary cloud services and to acquire the ancient blueprints that will guide our work. A Summoner's power is born from meticulous preparation.</p>
+          <p>👉 Click <strong>Activate Cloud Shell</strong> at the top of the Google Cloud console (It's the terminal shape icon at the top of the Cloud Shell pane),</p>
+          <p><img alt="cloud shell" src="https://codelabs.developers.google.com/static/agentverse-architect/img/03-01-cloud-shell.png" /></p>
+          <p>👉 Click on the <strong>"Open Editor"</strong> button (it looks like an open folder with a pencil). This will open the Cloud Shell Code Editor in the window. You'll see a file explorer on the left side.</p>
+          <p><img alt="open editor" src="https://codelabs.developers.google.com/static/agentverse-architect/img/03-02-open-editor.png" /></p>
+          <p>👉 Open the terminal in the cloud IDE,</p>
+          <p><img alt="new terminal" src="https://codelabs.developers.google.com/static/agentverse-architect/img/03-05-new-terminal.png" /></p>
+          <p>👉💻 In the terminal, verify that you're already authenticated and that the project is set to your project ID using the following command:</p>
+          <pre><code>gcloud auth list
+          </code></pre>
+          <p>👉💻 Clone the bootstrap project from GitHub:</p>
+          <pre><code>git clone https://github.com/thomas-chong/agentverse-architect
+          chmod +x ~/agentverse-architect/init.sh
+          chmod +x ~/agentverse-architect/set_env.sh
+          chmod +x ~/agentverse-architect/prepare.sh
+          chmod +x ~/agentverse-architect/data_setup.sh
+
+          git clone https://github.com/thomas-chong/agentverse-dungeon.git
+          chmod +x ~/agentverse-dungeon/run_cloudbuild.sh
+          chmod +x ~/agentverse-dungeon/start.sh
+          </code></pre>
+          <blockquote>
+          <h3 id="patched-run-the-setup-script">🛠️ PATCHED — Run the setup script</h3>
+          <p><strong>This is the only step we modified.</strong> The upstream <code>./init.sh</code> assumes you can run <code>gcloud projects create</code>. In a <strong>workshop / Qwiklabs</strong> setting, Google <strong>assigns</strong> you a project (e.g. <code>qwiklabs-gcp-01-…</code>) that you cannot — and should not — create, and which already has billing enabled. Our patched <code>init.sh</code> + <code>billing-enablement.py</code> detect and reuse that assigned project instead of failing.</p>
+          <p><strong>If you have an assigned / Qwiklabs project, run this INSTEAD of the original step below:</strong></p>
+          <p>```bash</p>
+          <h1 id="point-gcloud-or-export-the-env-var-at-your-assigned-project-first">Point gcloud (or export the env var) at your ASSIGNED project first.</h1>
+          <h1 id="replace-your_assigned_project_id-with-the-id-google-assigned-you">Replace YOUR_ASSIGNED_PROJECT_ID with the ID Google assigned you</h1>
+          <h1 id="eg-a-qwiklabs-gcp-project-from-your-workshop-console">(e.g. a qwiklabs-gcp-##-######### project from your workshop console).</h1>
+          <p>gcloud config set project YOUR_ASSIGNED_PROJECT_ID</p>
+          <h1 id="equivalently-export-google_cloud_projectyour_assigned_project_id">(equivalently:  export GOOGLE_CLOUD_PROJECT=YOUR_ASSIGNED_PROJECT_ID)</h1>
+          <p>cd ~/agentverse-architect
+          ./init.sh
+          ```</p>
+          <p>The patched <code>resolve_project()</code> helper checks, in order:
+          1. <code>$GOOGLE_CLOUD_PROJECT</code>
+          2. the active <code>gcloud config</code> project
+          3. <code>~/project_id.txt</code></p>
+          <p>…and only falls back to <code>projects create</code> if none resolve. The patched <code>billing-enablement.py</code> also checks <code>get_project_billing_info</code> first and exits cleanly when billing is already enabled (the Qwiklabs case), instead of looping on <code>list_billing_accounts</code>.</p>
+          <p><strong>↓ Original upstream step (for self-service accounts that need to create a project) ↓</strong></p>
+          </blockquote>
+          <p>👉💻 Run the setup script from the project directory.</p>
+          <p><strong>⚠️ Note on Project ID:</strong> The script will suggest a randomly generated default Project ID. You can press <strong>Enter</strong> to accept this default.</p>
+          <p>However, if you prefer to <strong>create a specific new project</strong>, you can type your desired Project ID when prompted by the script.</p>
+          <pre><code>cd ~/agentverse-architect
+          ./init.sh
+          </code></pre>
+          <p>The script will handle the rest of the setup process automatically.</p>
+          <p><strong>👉 Important Step After Completion:</strong> Once the script finishes, you must ensure your Google Cloud Console is viewing the correct project:</p>
+          <ol>
+          <li>Go to console.cloud.google.com.</li>
+          <li>Click the project selector dropdown at the top of the page.</li>
+          <li>Click the <strong>"All"</strong> tab (as the new project might not appear in "Recent" yet).</li>
+          <li>Select the Project ID you just configured in the <code>init.sh</code> step.</li>
+          </ol>
+          <p><img alt="project all" src="https://codelabs.developers.google.com/static/agentverse-architect/img/03-05-project-all.png" /></p>
+          <p>👉💻 Set the Project ID needed:</p>
+          <pre><code>gcloud config set project $(cat ~/project_id.txt) --quiet
+          </code></pre>
+          <p>👉💻 Run the following command to enable the necessary Google Cloud APIs:</p>
+          <pre><code>gcloud services enable \
+              sqladmin.googleapis.com \
+              storage.googleapis.com \
+              aiplatform.googleapis.com \
+              run.googleapis.com \
+              cloudbuild.googleapis.com \
+              artifactregistry.googleapis.com \
+              iam.googleapis.com \
+              compute.googleapis.com \
+              cloudresourcemanager.googleapis.com \
+              secretmanager.googleapis.com
+          </code></pre>
+          <p>👉💻 If you have not already created an Artifact Registry repository named <code>agentverse-repo</code>, run the following command to create it: <em>(Skip this step if you have other classes deployed in the same project)</em></p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          gcloud artifacts repositories create $REPO_NAME \
+              --repository-format=docker \
+              --location=$REGION \
+              --description=&quot;Repository for Agentverse agents&quot;
+          </code></pre>
+          <h3 id="setting-up-permission">Setting up permission</h3>
+          <p>👉💻 Grant the necessary permissions by running the following commands in the terminal:</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+
+          # --- Grant Core Data Permissions ---
+          gcloud projects add-iam-policy-binding $PROJECT_ID \
+           --member=&quot;serviceAccount:$SERVICE_ACCOUNT_NAME&quot; \
+           --role=&quot;roles/storage.admin&quot;
+
+          gcloud projects add-iam-policy-binding $PROJECT_ID  \
+          --member=&quot;serviceAccount:$SERVICE_ACCOUNT_NAME&quot;  \
+          --role=&quot;roles/aiplatform.user&quot;
+
+          # --- Grant Deployment &amp; Execution Permissions ---
+          gcloud projects add-iam-policy-binding $PROJECT_ID  \
+          --member=&quot;serviceAccount:$SERVICE_ACCOUNT_NAME&quot;  \
+          --role=&quot;roles/cloudbuild.builds.editor&quot;
+
+          gcloud projects add-iam-policy-binding $PROJECT_ID  \
+          --member=&quot;serviceAccount:$SERVICE_ACCOUNT_NAME&quot;  \
+          --role=&quot;roles/artifactregistry.admin&quot;
+
+          gcloud projects add-iam-policy-binding $PROJECT_ID  \
+          --member=&quot;serviceAccount:$SERVICE_ACCOUNT_NAME&quot;  \
+          --role=&quot;roles/run.admin&quot;
+
+          gcloud projects add-iam-policy-binding $PROJECT_ID  \
+          --member=&quot;serviceAccount:$SERVICE_ACCOUNT_NAME&quot;  \
+          --role=&quot;roles/iam.serviceAccountUser&quot;
+
+          gcloud projects add-iam-policy-binding $PROJECT_ID  \
+          --member=&quot;serviceAccount:$SERVICE_ACCOUNT_NAME&quot;  \
+          --role=&quot;roles/logging.logWriter&quot;
+
+          gcloud projects add-iam-policy-binding $PROJECT_ID \
+            --member=&quot;serviceAccount:${SERVICE_ACCOUNT_NAME}&quot; \
+            --role=&quot;roles/monitoring.metricWriter&quot;
+
+          gcloud projects add-iam-policy-binding $PROJECT_ID \
+            --member=&quot;serviceAccount:${SERVICE_ACCOUNT_NAME}&quot; \
+            --role=&quot;roles/secretmanager.secretAccessor&quot;
+          </code></pre>
+          <p>👉💻 As you begin your training, we will prepare the final challenge. The following commands will summon the Spectres from the chaotic static, creating the bosses for your final test.</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          cd ~/agentverse-dungeon
+          ./run_cloudbuild.sh
+          cd ~/agentverse-architect
+          </code></pre>
+          <p>👉💻 Finally, run the <code>prepare.sh</code> script to perform initial setup tasks.</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          cd ~/agentverse-architect/
+          ./prepare.sh
+          </code></pre>
+          <p>Excellent work, Summoner. The circle is complete and the pacts are sealed. The ground is now hallowed, ready to channel immense power. In our next trial, we will forge the very Elemental Fonts from which our Familiars will draw their strength.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-step="4">
+        <div class="section-tag">Step 4 · Official codelab</div>
+        <h1>Forging the Elemental Fonts: The Decoupled Tooling Ecosystem</h1>
+        <div class="md">
+          <p>The battlefield is prepared, the summoning circle is drawn, and the ambient mana is crackling. It is time to perform your first true act as a Summoner: forging the very sources of power from which your Familiars will draw their strength. This ritual is divided into three parts, each awakening an Elemental Font—a stable, independent source of a specific kind of power. Only when all three fonts are active can you begin the more complex work of summoning.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-07-story.png" /></p>
+          <p><strong>Architect's Note:</strong> The Model Context Protocol (MCP) server is a foundational component in a modern agentic system, acting as a standardized communication bridge that allows an agent to discover and use remote tools. In our tooling ecosystem, we will architect two distinct types of MCP servers, each representing a critical architectural pattern. For connecting to our database, we will use a declarative approach with the Database Toolbox, defining our tools in a simple configuration file. This pattern is incredibly efficient and secure for exposing structured data access. However, when we need to implement custom business logic or call external third-party APIs, we will use an imperative approach, writing the server's logic step-by-step in code. This provides the ultimate control and flexibility, allowing us to encapsulate complex operations behind a simple, reusable tool. A master architect must understand both patterns to select the right approach for each component, creating a robust, secure, and scalable tooling foundation.</p>
+          <p><img alt="overview" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-00-overview.png" /></p>
+          <h3 id="awakening-the-nexus-of-whispers-external-api-mcp-server">Awakening the Nexus of Whispers (External API MCP Server)</h3>
+          <p>A wise Summoner knows that not all power originates from within their own domain. There are external, sometimes chaotic, sources of energy that can be channeled to great effect. The Nexus of Whispers is our gateway to these forces.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-08-water-story.png" /></p>
+          <p>There is a service already live and acts as our external power source, offering two raw spell endpoints: <code>/cryosea_shatter</code> and <code>/moonlit_cascade</code>.</p>
+          <p><strong>Architect's Note:</strong> You will use an <strong>imperative approach</strong> that explicitly defines the server's logic step-by-step. This gives you far more control and flexibility, which is essential when your tools need to do more than just run a simple SQL query, like calling other APIs. Understanding both patterns is a critical skill for an agent architect.</p>
+          <p>👉✏️ Navigate to the directory <code>~/agentverse-architect/mcp-servers/api/main.py</code> and <strong>REPLACE</strong> <code>#REPLACE-MAGIC-CORE</code> with following code:</p>
+          <pre><code class="language-python">def cryosea_shatter() -&gt; str:
+              &quot;&quot;&quot;Channels immense frost energy from an external power source, the Nexus of Whispers, to unleash the Cryosea Shatter spell.&quot;&quot;&quot;
+              try:
+                  response = requests.post(f&quot;{API_SERVER_URL}/cryosea_shatter&quot;)
+                  response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+                  data = response.json()
+                  # Thematic Success Message
+                  return f&quot;A connection to the Nexus is established! A surge of frost energy manifests as Cryosea Shatter, dealing {data.get('damage_points')} damage.&quot;
+              except requests.exceptions.RequestException as e:
+                  # Thematic Error Message
+                  return f&quot;The connection to the external power source wavers and fails. The Cryosea Shatter spell fizzles. Reason: {e}&quot;
+
+          def moonlit_cascade() -&gt; str:
+              &quot;&quot;&quot;Draws mystical power from an external energy source, the Nexus of Whispers, to invoke the Moonlit Cascade spell.&quot;&quot;&quot;
+              try:
+                  response = requests.post(f&quot;{API_SERVER_URL}/moonlit_cascade&quot;)
+                  response.raise_for_status()
+                  data = response.json()
+                  # Thematic Success Message
+                  return f&quot;The Nexus answers the call! A cascade of pure moonlight erupts from the external source, dealing {data.get('damage_points')} damage.&quot;
+              except requests.exceptions.RequestException as e:
+                  # Thematic Error Message
+                  return f&quot;The connection to the external power source wavers and fails. The Moonlit Cascade spell fizzles. Reason: {e}&quot;
+          </code></pre>
+          <p>At the very heart of the script are the plain Python functions. This is where the actual work happens.</p>
+          <p>👉✏️ In the same file <code>~/agentverse-architect/mcp-servers/api/main.py</code> <strong>REPLACE</strong> <code>#REPLACE-Runes of Communication</code> with following code:</p>
+          <pre><code class="language-python">@app.list_tools()
+          async def list_tools() -&gt; list[mcp_types.Tool]:
+            &quot;&quot;&quot;MCP handler to list available tools.&quot;&quot;&quot;
+            # Convert the ADK tool's definition to MCP format
+            schema_cryosea_shatter = adk_to_mcp_tool_type(cryosea_shatterTool)
+            schema_moonlit_cascade = adk_to_mcp_tool_type(moonlit_cascadeTool)
+            print(f&quot;MCP Server: Received list_tools request. \n MCP Server: Advertising tool: {schema_cryosea_shatter.name} and {schema_moonlit_cascade.name}&quot;)
+            return [schema_cryosea_shatter,schema_moonlit_cascade]
+
+          @app.call_tool()
+          async def call_tool(
+              name: str, arguments: dict
+          ) -&gt; list[mcp_types.TextContent | mcp_types.ImageContent | mcp_types.EmbeddedResource]:
+            &quot;&quot;&quot;MCP handler to execute a tool call.&quot;&quot;&quot;
+            print(f&quot;MCP Server: Received call_tool request for '{name}' with args: {arguments}&quot;)
+
+            # Look up the tool by name in our dictionary
+            tool_to_call = available_tools.get(name)
+            if tool_to_call:
+              try:
+                adk_response = await tool_to_call.run_async(
+                    args=arguments,
+                    tool_context=None, # No ADK context available here
+                )
+                print(f&quot;MCP Server: ADK tool '{name}' executed successfully.&quot;)
+
+                response_text = json.dumps(adk_response, indent=2)
+                return [mcp_types.TextContent(type=&quot;text&quot;, text=response_text)]
+
+              except Exception as e:
+                print(f&quot;MCP Server: Error executing ADK tool '{name}': {e}&quot;)
+                # Creating a proper MCP error response might be more robust
+                error_text = json.dumps({&quot;error&quot;: f&quot;Failed to execute tool '{name}': {str(e)}&quot;})
+                return [mcp_types.TextContent(type=&quot;text&quot;, text=error_text)]
+            else:
+                # Handle calls to unknown tools
+                print(f&quot;MCP Server: Tool '{name}' not found.&quot;)
+                error_text = json.dumps({&quot;error&quot;: f&quot;Tool '{name}' not implemented.&quot;})
+                return [mcp_types.TextContent(type=&quot;text&quot;, text=error_text)]
+          </code></pre>
+          <ul>
+          <li><code>@app.list_tools()</code> (The Handshake): This function is the server's greeting. When a new agent connects, it first calls this endpoint to ask, "What can you do?" Our code responds with a list of all available tools, converted into the universal MCP format using adk_to_mcp_tool_type.</li>
+          <li><code>@app.call_tool()</code> (The Command): This function is the workhorse. When the agent decides to use a tool, it sends a request to this endpoint with the name of the tool and the arguments. Our code looks up the tool in our available_tools "spellbook," executes it with run_async, and returns the result in the standard MCP format.</li>
+          </ul>
+          <p>We'll deploy this later.</p>
+          <h3 id="igniting-the-arcane-forge-general-functions-mcp-server">Igniting the Arcane Forge (General Functions MCP Server)</h3>
+          <p>Not all power comes from ancient books or distant whispers. Sometimes, a Summoner must forge their own magic from raw will and pure logic. The Arcane Forge is this font of power—a server that provides stateless, general-purpose utility functions.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-09-earth-story.png" /></p>
+          <p><strong>Architect's Note</strong>: This is another architectural pattern. While connecting to existing systems is common, you will frequently need to implement your own unique business rules and logic. Creating a dedicated "functions" or "utilities" tool like this is a best practice. It encapsulates your custom logic, makes it reusable for any agent in your ecosystem, and keeps it decoupled from your data sources and external integrations.</p>
+          <p>👀 Take a look at the file <code>~/agentverse-architect/mcp-servers/general/main.py</code> in your Google cloud IDE. You'll find it is using the same imperative, <code>mcp.server</code> approach as with the Nexus to build this custom Font of Power.</p>
+          <h3 id="create-the-master-cloud-build-pipeline">Create the Master Cloud Build Pipeline</h3>
+          <p>Now, we will create the <code>cloudbuild.yaml</code> file inside the <code>mcp-servers</code> directory. This file will orchestrate the build and deployment of both services.</p>
+          <p>👉💻 From the <code>~/agentverse-architect/mcp-servers</code> directory, run the following commands:</p>
+          <pre><code>cd ~/agentverse-architect/mcp-servers
+          source ~/agentverse-architect/set_env.sh
+
+          echo &quot;The API URL is: $API_SERVER_URL&quot;
+
+          # Submit the Cloud Build job from the parent directory
+          gcloud builds submit . \
+            --config=cloudbuild.yaml \
+            --substitutions=_REGION=&quot;$REGION&quot;,_REPO_NAME=&quot;$REPO_NAME&quot;,_API_SERVER_URL=&quot;$API_SERVER_URL&quot;
+          </code></pre>
+          <p>Wait until all deployments are complete.</p>
+          <p>👉 You can verify the deployment by navigating to the Cloud Run console. You should see your two new MCP server instances running, as shown below:</p>
+          <p><img alt="mcp-crun" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-04-mcp-crun.png" /></p>
+          <p>Our next Font will be the <em>Librarium of Knowledge</em>, a direct connection to our Cloud SQL database.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-10-fire-story.png" /></p>
+          <p><strong>Architect's Note:</strong> For this, we will use the modern, declarative <strong>Database Toolbox</strong>. This is a powerful approach where we define our data source and tools in a YAML configuration file. The toolbox handles the complex work of creating and running the server, reducing the amount of custom code we need to write and maintain.</p>
+          <p>It's time to build our "Summoner's Librarium"—the Cloud SQL database that will hold all our critical information. We'll use a setup script to handle this automatically.</p>
+          <p>👉💻 First, we'll setup the database, in your terminal, run the following commands:</p>
+          <pre><code>source ~/agentverse-architect/set_env.sh
+          cd ~/agentverse-architect
+          ./data_setup.sh
+          </code></pre>
+          <p>After the script finishes, your database will be populated and the elemental damage data will be ready for use. You can now verify the contents of your Grimoire directly.</p>
+          <p>👉 First, navigate to the <em>Cloud SQL Studio</em> for your database by opening this direct link in a new browser tab:</p>
+          <pre><code>https://console.cloud.google.com/sql/instances/summoner-librarium-db
+          </code></pre>
+          <p><img alt="Cloud SQL" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-03-csql-studio.png" /></p>
+          <p>👉 In the login pane on the left, select the <code>familiar_grimoire</code> database from the dropdown.</p>
+          <p>👉 Enter <code>summoner</code> as the user and <code>1234qwer</code> as the password, then click <strong>Authenticate</strong>.</p>
+          <p>👉📜 Once connected, open a new query editor tab if one isn't already open. To view the inscribed elemental damage data, paste and run the following SQL query:</p>
+          <pre><code class="language-sql">SELECT * FROM
+            &quot;public&quot;.&quot;abilities&quot;
+          </code></pre>
+          <p>You should now see the <code>abilities</code> table with its columns and rows populated, confirming that your Grimoire is ready.</p>
+          <p><img alt="Data" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-01-database.png" /></p>
+          <p><strong>Configure the ToolBox MCP Server</strong></p>
+          <p>The <code>tools.yaml</code> configuration file acts as the blueprint for our server, telling the Database Toolbox exactly how to connect to our database and what SQL queries to expose as tools.</p>
+          <p><strong>sources:</strong> This section defines the connections to your data.</p>
+          <ul>
+          <li>summoner-librarium: This is a logical name we've given to our connection.</li>
+          <li>kind: cloud-sql-postgres: It tells the Toolbox to use its built-in, secure connector specifically designed for Cloud SQL for PostgreSQL.</li>
+          <li>project, region, instance, etc.: These are the exact coordinates of the Cloud SQL instance you created during the prepare.sh script, telling the Toolbox where to find our Librarium.</li>
+          </ul>
+          <p>👉✏️ Head over to <code>~/agentverse-architect/mcp-servers/db-toolbox</code> in the <code>tools.yaml</code>, replace <code>#REPLACE-Source</code> with following</p>
+          <pre><code class="language-yaml">sources:
+            # This section defines the connection to our Cloud SQL for PostgreSQL database.
+            summoner-librarium:
+              kind: cloud-sql-postgres
+              project: &quot;YOUR_PROJECT_ID&quot;
+              region: &quot;us-central1&quot;
+              instance: &quot;summoner-librarium-db&quot;
+              database: &quot;familiar_grimoire&quot;
+              user: &quot;summoner&quot;
+              password: &quot;1234qwer&quot;
+          </code></pre>
+          <p>👉✏️ 🚨🚨 <strong>REPLACE</strong></p>
+          <p><strong><code>YOUR_PROJECT_ID</code></strong></p>
+          <p><strong>with your project id.</strong></p>
+          <p><strong>tools:</strong> This section defines the actual abilities or functions our server will offer.</p>
+          <ul>
+          <li>lookup-available-ability: This is the name of our first tool.</li>
+          <li>kind: postgres-sql: This tells the Toolbox that this tool's action is to execute a SQL statement.</li>
+          <li>source: summoner-librarium: This links the tool to the connection we defined in the sources block. This is how the tool knows which database to run its query against.</li>
+          <li>description &amp; parameters: This is the information that will be exposed to the Language Model. The description tells the agent when to use the tool, and the parameters define the inputs the tool requires. This is critical for enabling the agent's function-calling ability.</li>
+          <li>statement: This is the raw SQL query to be executed. The $1 is a secure placeholder where the familiar_name parameter provided by the agent will be safely inserted.</li>
+          </ul>
+          <p>👉✏️ In the same <code>~/agentverse-architect/mcp-servers/db-toolbox</code> in the <code>tools.yaml</code> file, replace <code>#REPLACE-tools</code> with following</p>
+          <pre><code class="language-yaml">tools:
+            # This tool replaces the need for a custom Python function.
+            lookup-available-ability:
+              kind: postgres-sql
+              source: summoner-librarium
+              description: &quot;Looks up all known abilities and their damage for a given familiar from the Grimoire.&quot;
+              parameters:
+                - name: familiar_name
+                  type: string
+                  description: &quot;The name of the familiar to search for (e.g., 'Fire Elemental').&quot;
+              statement: |
+                SELECT ability_name, damage_points FROM abilities WHERE familiar_name = $1;
+
+            # This tool also replaces a custom Python function.
+            ability-damage:
+              kind: postgres-sql
+              source: summoner-librarium
+              description: &quot;Finds the base damage points for a specific ability by its name.&quot;
+              parameters:
+                - name: ability_name
+                  type: string
+                  description: &quot;The exact name of the ability to look up (e.g., 'inferno_resonance').&quot;
+              statement: |
+                SELECT damage_points FROM abilities WHERE ability_name = $1;
+          </code></pre>
+          <p><strong>toolsets:</strong> This section groups our individual tools together.</p>
+          <ul>
+          <li>summoner-librarium: We are creating a toolset with the same name as our source. When our diagnostic agent connects later, it can ask to load all the tools from the summoner-librarium toolset in a single, efficient command.</li>
+          </ul>
+          <p>👉✏️ In the same <code>~/agentverse-architect/mcp-servers/db-toolbox</code> in the <code>tools.yaml</code> file, replace <code>#REPLACE-toolsets</code> with following</p>
+          <pre><code class="language-yaml">toolsets:
+             summoner-librarium:
+               - lookup-available-ability
+               - ability-damage
+          </code></pre>
+          <p><strong>Deploying the Librarium</strong></p>
+          <p>Now we will deploy the Librarium. Instead of building our own container, we will use a pre-built, official container image from Google and securely provide our tools.yaml configuration to it using Secret Manager. This is a best practice for security and maintainability.</p>
+          <p>👉💻 Create a secret from the tools.yaml file</p>
+          <pre><code>cd ~/agentverse-architect/mcp-servers/db-toolbox
+          gcloud secrets create tools --data-file=tools.yaml
+          </code></pre>
+          <p>👉💻 Deploy the official toolbox container to Cloud Run.</p>
+          <pre><code>cd ~/agentverse-architect/mcp-servers/db-toolbox
+          . ~/agentverse-architect/set_env.sh
+          export TOOLBOX_IMAGE=us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:$TOOLBOX_VERSION
+          echo &quot;TOOLBOX_IMAGE is $TOOLBOX_IMAGE&quot;
+          gcloud run deploy toolbox \
+              --image $TOOLBOX_IMAGE \
+              --region $REGION \
+              --set-secrets &quot;/app/tools.yaml=tools:latest&quot; \
+              --labels=&quot;dev-tutorial-codelab=agentverse&quot; \
+              --args=&quot;--tools-file=/app/tools.yaml&quot;,&quot;--address=0.0.0.0&quot;,&quot;--port=8080&quot; \
+              --allow-unauthenticated \
+              --min-instances 1
+          </code></pre>
+          <ul>
+          <li><code>--set-secrets</code>: This command securely mounts our tools secret as a file named tools.yaml inside the running container.</li>
+          <li><code>--args</code>: We instruct the toolbox container to use the mounted secret file as its configuration.</li>
+          </ul>
+          <p>👉 To confirm that your toolbox has been successfully deployed, navigate to the Cloud Run console. You should see the <code>summoner-toolbox</code> service listed with a green checkmark, indicating it is running correctly, just like in the image below.</p>
+          <p><img alt="toolbox-crun" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-05-toolbox-crun.png" /></p>
+          <p><em>If you forgot to update</em></p>
+          <p><em><code>YOUR_PROJECT_ID</code></em></p>
+          <p><em>you can add a new version of the tools.yaml to the secret using the following command and redeploy again.</em></p>
+          <pre><code>gcloud secrets versions add tools --data-file=tools.yaml
+          </code></pre>
+          <p>The Librarium of Knowledge (Database ToolBox MCP Server) is now active and accessible in the cloud. This MCP server uses what we called a <strong>Declarative Design</strong> that described what you wanted, and the toolbox built the server for you.</p>
+          <h3 id="verification-the-trial-of-the-apprentice">Verification: The Trial of the Apprentice</h3>
+          <p>👉💻 Now we will test our complete, cloud-native tooling ecosystem with the Diagnostic Agent.</p>
+          <pre><code>cd ~/agentverse-architect/
+          python -m venv env
+          source ~/agentverse-architect/env/bin/activate
+          cd ~/agentverse-architect/mcp-servers
+          pip install -r diagnose/requirements.txt 
+          . ~/agentverse-architect/set_env.sh
+          adk run diagnose
+          </code></pre>
+          <p>👉💻 In the cmd line testing tool, test all three fonts:</p>
+          <pre><code>Look up the entry for &quot;inferno_lash&quot;. What is its base power level?
+          </code></pre>
+          <pre><code>The enemy is vulnerable to frost! Channel power from the Nexus and cast Cryosea Shatter.
+          </code></pre>
+          <pre><code>Take a fire spell with a base power of 15 and use the Arcane Forge to multiply it with Inferno Resonance.
+          </code></pre>
+          <p><img alt="final-result" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-02-final-result.png" /></p>
+          <p>Congratulations, Summoner. Your three Elemental Fonts are now active, independently deployed, and globally accessible, forming the unshakable foundation for your agentic legion. Press <code>Ctrl+C</code> to exit.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-step="5">
+        <div class="section-tag">Step 5 · Official codelab</div>
+        <h1>Summoning the Familiars: The Core Domain Workflow</h1>
+        <div class="md">
+          <p>The Elemental Fonts are forged, humming with raw, untamed power. But power without form is chaos. A true Summoner does not merely wield raw energy; they give it will, purpose, and a specialized form. It is time to move beyond forging power sources and begin the true work: summoning your first Familiars.</p>
+          <p>Each Familiar you summon will be an autonomous agent, a loyal servant bound to a specific combat doctrine. They are not generalists; they are masters of a single, powerful strategy. One will be a master of the precise, one-two punch combo. Another will overwhelm enemies with a simultaneous, multi-pronged assault. A third will be a relentless siege engine, applying pressure until its target crumbles.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-06-story.png" /></p>
+          <p>To encapsulate processes, business logic and actions provided by the MCP servers into specialized, autonomous workflow agents. Each agent will have a defined "operational territory" by being granted access to only the specific MCP tool servers it needs to perform its function. This lab demonstrates how to select the right agent type for the right job.</p>
+          <p><img alt="overview" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-00-overview.png" /></p>
+          <p>This module will teach you how to use the ADK's powerful workflow agents to breathe life into these strategies. You will learn that the architectural choice of a SequentialAgent, ParallelAgent, or LoopAgent is not just a technical detail—it is the very essence of your Familiar's nature and the core of its power on the battlefield.</p>
+          <p>Prepare your sanctum. The real summoning is about to begin.</p>
+          <h3 id="summon-the-fire-elemental-familiar-sequential-workflow">Summon the <code>Fire Elemental</code> Familiar (Sequential Workflow)</h3>
+          <p>A Fire Elemental Familiar's attack is a precise, two-part combo: a targeted strike followed by a powerful ignition. This requires a strict, ordered sequence of actions.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-07-fire.png" /></p>
+          <p><strong>Concept:</strong> The <code>SequentialAgent</code> is the perfect tool for this. It ensures that a series of sub-agents run one after another, passing the result from the previous step to the next.</p>
+          <p><strong>Task (The "Amplified Strike" Combo):</strong></p>
+          <ul>
+          <li>Step 1: The agent will first consult the Librarium to find the base damage of a specific fire ability.</li>
+          <li>Step 2: It will then take that damage value and channel it through the Arcane Forge to multiply its power using inferno_resonance.</li>
+          </ul>
+          <p>First, we'll establish the connection between our Familiar and the MCP servers (the "Elemental Fonts") that you deployed in the previous module.</p>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/fire/agent.py</code> REPLACE <code>#REPLACE-setup-MCP</code> with the following code:</p>
+          <pre><code class="language-python">toolbox = ToolboxSyncClient(DB_TOOLS_URL)
+          toolDB = toolbox.load_toolset('summoner-librarium')
+          toolFunction =  MCPToolset(
+              connection_params=SseServerParams(url=FUNCTION_TOOLS_URL, headers={})
+          )
+          </code></pre>
+          <p>Next, we create our specialist "worker" agents. Each is given a narrow, well-defined purpose and is restricted to its own "operational territory" by being granted access to only one specific toolset.</p>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/fire/agent.py</code> <strong>REPLACE</strong> <code>#REPLACE-worker-agents</code> with the following code:</p>
+          <pre><code class="language-python">scout_agent = LlmAgent(
+                model='gemini-2.5-flash', 
+                name='librarian_agent',  
+                instruction=&quot;&quot;&quot;
+                    Your only task is to find all the available abilities, 
+                    You want to ALWAYS use 'Fire Elemental' as your familiar's name. 
+                    Randomly pick one if you see multiple availabilities 
+                    and the base damage of the ability by calling the 'ability_damage' tool.
+                &quot;&quot;&quot;,
+                tools=toolDB
+          )
+          amplifier_agent = LlmAgent(
+                model='gemini-2.5-flash', 
+                name='amplifier_agent',  
+                instruction=&quot;&quot;&quot;
+                      You are the Voice of the Fire Familiar, a powerful being who unleashes the final, devastating attack.
+                      You will receive the base damage value from the previous step.
+
+                      Your mission is to:
+                      1.  Take the incoming base damage number and amplify it using the `inferno_resonance` tool.
+                      2.  Once the tool returns the final, multiplied damage, you must not simply state the result.
+                      3.  Instead, you MUST craft a final, epic battle cry describing the attack.
+                          Your description should be vivid and powerful, culminating in the final damage number.
+
+                      Example: If the tool returns a final damage of 120, your response could be:
+                      &quot;The runes glow white-hot! I channel the amplified energy... unleashing a SUPERNOVA for 120 damage!&quot;
+                &quot;&quot;&quot;,
+                tools=[toolFunction],
+          )
+          </code></pre>
+          <p>These agents are modular, reusable components. You could, in theory, use this scout_agent in a completely different workflow that needs to query the database. By keeping their responsibilities separate, we create flexible building blocks. This is a core tenet of microservice and component-based design.</p>
+          <p>Next we'll assemble the Workflow — this is where the magic of composition happens. The <code>SequentialAgent</code> is the "master plan" that defines how our specialist components are assembled and how they interact.</p>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/fire/agent.py</code> <strong>REPLACE</strong> <code>#REPLACE-sequential-agent</code> with the following code:</p>
+          <pre><code class="language-python">root_agent = SequentialAgent(
+                name='fire_elemental_familiar',
+                sub_agents=[scout_agent, amplifier_agent],
+          )
+          </code></pre>
+          <p>👉💻 To test the Fire Elemental, run the following commands will launch the ADK DEV UI:</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          source ~/agentverse-architect/env/bin/activate
+          cd ~/agentverse-architect/agent
+          echo  DB MCP Server: $DB_TOOLS_URL
+          echo  API MCP Server: $API_TOOLS_URL
+          echo  General MCP Server: $FUNCTION_TOOLS_URL
+          adk web
+          </code></pre>
+          <p>After running the commands, you should see output in your terminal indicating that the ADK Web Server has started, similar to this:</p>
+          <pre><code>+-----------------------------------------------------------------------------+
+          | ADK Web Server started                                                      |
+          |                                                                             |
+          | For local testing, access at http://localhost:8000.                         |
+          +-----------------------------------------------------------------------------+
+
+          INFO:     Application startup complete.
+          INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+          </code></pre>
+          <p>👉 Next, to access the ADK Dev UI from your browser:</p>
+          <p>From the Web preview icon (often looks like an eye or a square with an arrow) in the Cloud Shell toolbar (usually top right), select <strong>Change port</strong>. In the pop-up window, set the port to 8000 and click "Change and Preview". Cloud Shell will then open a new browser tab or window displaying the ADK Dev UI.</p>
+          <p><img alt="webpreview" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-01-webpreview.png" /></p>
+          <p>👉 Your summoning ritual is complete, and the agent is now running. The <strong>ADK Dev UI</strong> in your browser is your direct connection to the Familiar.</p>
+          <ul>
+          <li>Select Your Target: In the dropdown menu at the top of the UI, choose the <code>fire</code> familiar. You are now focusing your will on this specific entity.</li>
+          <li>Issue Your Command: In the chat panel on the right, it's time to give the Familiar its orders.</li>
+          </ul>
+          <p><img alt="fire-select" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-02-fire-select.png" /></p>
+          <p>👉 <strong>Test Prompt:</strong></p>
+          <pre><code>Prepare an amplified strike using the 'inferno_lash' ability.
+          </code></pre>
+          <p><img alt="fire-result" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-03-fire.png" /></p>
+          <p><em>You will see the agent think, first calling its "scout" to look up the base damage, and then its "amplifier" to multiply it and deliver the final, epic blow.</em></p>
+          <p>👉💻 Once you're done summoning, return to your Cloud Shell Editor terminal and press <code>Ctrl+C</code> to stop the ADK Dev UI.</p>
+          <h3 id="summon-the-water-elemental-familiar-parallel-workflow">Summon the <code>Water Elemental</code> Familiar (Parallel Workflow)</h3>
+          <p>A Water Elemental Familiar overwhelms its target with a massive, multi-pronged assault, striking from all directions at once before combining the energies for a final, devastating blow.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-08-water.png" /></p>
+          <p><strong>Concept:</strong> The <code>ParallelAgent</code> is ideal for executing multiple independent tasks simultaneously to maximize efficiency. It's a "pincer attack" where you launch several assaults at once. This launches the simultaneous attacks within a <code>SequentialAgent</code> to run a final "merger" step afterward. This "<strong>fan-out, fan-in</strong>" pattern is a cornerstone of advanced workflow design.</p>
+          <p><strong>Task (The "Tidal Clash" Combo):</strong> The agent will simultaneously:</p>
+          <ul>
+          <li>Task A: Channel <code>cryosea_shatter</code> from the Nexus.</li>
+          <li>Task B: Channel <code>moonlit_cascade</code> from the Nexus.</li>
+          <li>Task C: Generate raw power with <code>leviathan_surge</code> from the Forge.</li>
+          <li>Finally, sum all the damage and describe the combined attack.</li>
+          </ul>
+          <p>First, we'll establish the connection between our Familiar and the MCP servers (the "Elemental Fonts") that you deployed in the previous module.</p>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/water/agent.py</code> REPLACE <code>#REPLACE-setup-MCP</code> with the following code:</p>
+          <pre><code class="language-python">toolFAPI =  MCPToolset(
+                connection_params=SseServerParams(url=API_TOOLS_URL, headers={})
+            )
+          toolFunction =  MCPToolset(
+              connection_params=SseServerParams(url=FUNCTION_TOOLS_URL, headers={})
+          )
+          </code></pre>
+          <p>Next, we'll create our specialist "worker" agents. Each is given a narrow, well-defined purpose and is restricted to its own "operational territory" by being granted access to only one specific toolset.</p>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/water/agent.py</code> REPLACE <code>#REPLACE-worker-agents</code> with the following code:</p>
+          <pre><code class="language-python">nexus_channeler = LlmAgent(
+                model='gemini-2.5-flash', 
+                name='librarian_agent',  
+                instruction=&quot;&quot;&quot;
+                    You are a Channeler of the Nexus. Your sole purpose is to invoke the
+                    `cryosea_shatter` and `moonlit_cascade` spells by calling their respective tools.
+                    Report the result of each spell cast clearly and concisely.
+                &quot;&quot;&quot;,
+                tools=[toolFAPI]
+          )
+
+          forge_channeler = LlmAgent(
+                model='gemini-2.5-flash', 
+                name='amplifier_agent',  
+                instruction=&quot;&quot;&quot;
+                    You are a Channeler of the Arcane Forge. Your only task is to invoke the
+                    `leviathan_surge` spell. You MUST call it with a `base_water_damage` of 20.
+                    Report the result clearly.
+                &quot;&quot;&quot;,
+                tools=[toolFunction],
+          )
+
+          power_merger = LlmAgent(
+                model='gemini-2.5-flash', 
+                name='power_merger',  
+                instruction=&quot;&quot;&quot;
+                    You are the Power Merger, a master elementalist who combines raw magical
+                    energies into a single, devastating final attack.
+
+                    You will receive a block of text containing the results from a simultaneous
+                    assault by other Familiars.
+
+                    You MUST follow these steps precisely:
+                    1.  **Analyze the Input:** Carefully read the entire text provided from the previous step.
+                    2.  **Extract All Damage:** Identify and extract every single damage number reported in the text.
+                    3.  **Calculate Total Damage:** Sum all of the extracted numbers to calculate the total combined damage.
+                    4.  **Describe the Final Attack:** Create a vivid, thematic description of a massive,
+                        combined water and ice attack that uses the power of Cryosea Shatter and Leviathan's Surge.
+                    5.  **Report the Result:** Conclude your response by clearly stating the final, total damage of your combined attack.
+
+                    Example: If the input is &quot;...dealt 55 damage. ...dealt 60 damage.&quot;, you will find 55 and 60,
+                    calculate the total as 115, and then describe the epic final attack, ending with &quot;for a total of 115 damage!&quot;
+                &quot;&quot;&quot;,
+                tools=[toolFunction],
+          )
+          </code></pre>
+          <p>Next, we'll assemble the Workflow. This is where the magic of composition happens. The <code>ParallelAgent</code> and <code>SequentialAgent</code> are the "master plan" that defines how our specialist components are assembled and how they interact to form the "Tidal Clash" combo.</p>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/water/agent.py</code> REPLACE <code>#REPLACE-parallel-agent</code> with the following code:</p>
+          <pre><code class="language-python">channel_agent = ParallelAgent(
+                name='channel_agent',
+                sub_agents=[nexus_channeler, forge_channeler],
+
+          )
+
+          root_agent = SequentialAgent(
+               name=&quot;water_elemental_familiar&quot;,
+               # Run parallel research first, then merge
+               sub_agents=[channel_agent, power_merger],
+               description=&quot;A powerful water familiar that unleashes multiple attacks at once and then combines their power for a final strike.&quot;
+           )
+          </code></pre>
+          <p>👉💻 To test the Water Elemental, run the following commands to launch the ADK Dev UI:</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          source ~/agentverse-architect/env/bin/activate
+          cd ~/agentverse-architect/agent
+          echo  DB MCP Server: $DB_TOOLS_URL
+          echo  API MCP Server: $API_TOOLS_URL
+          echo  General MCP Server: $FUNCTION_TOOLS_URL
+          adk web
+          </code></pre>
+          <p>👉 Your summoning ritual is complete, and the agent is now running. The ADK Dev UI in your browser is your direct connection to the Familiar.</p>
+          <ul>
+          <li>In the dropdown menu at the top of the UI, choose the <strong>water</strong> familiar. You are now focusing your will on this specific entity.</li>
+          <li>Issue Your Command: In the chat panel on the right, it's time to give the Familiar its orders.</li>
+          </ul>
+          <p>👉 <strong>Test Prompt:</strong></p>
+          <pre><code>Unleash a tidal wave of power!
+          </code></pre>
+          <p><img alt="water-result" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-04-water.png" /></p>
+          <p>👉💻 Once you're done summoning, return to your Cloud Shell Editor terminal and press <code>Ctrl+C</code> to stop the ADK Dev UI.</p>
+          <h3 id="summon-the-earth-elemental-familiar-loop-workflow">Summon the <code>Earth Elemental</code> Familiar (Loop Workflow)</h3>
+          <p>An Earth Elemental Familiar is a being of relentless pressure. It doesn't defeat its enemy with a single blow, but by steadily accumulating power and applying it over and over until the target's defenses crumble.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-09-earth.png" /></p>
+          <p><strong>Concept:</strong> The <code>LoopAgent</code> is designed for exactly this kind of iterative, "siege engine" task. It will repeatedly execute its <code>sub-agents</code>, checking a condition after each cycle, until a goal is met. It can also adapt its final message based on the loop's progress.</p>
+          <p><strong>Task (The "Siegebreaker" Assault):</strong></p>
+          <ul>
+          <li>The Familiar will repeatedly call seismic_charge to accumulate energy.</li>
+          <li>It will continue charging for a maximum of 3 times.</li>
+          <li>On the final charge, it will announce the devastating release of its accumulated power.</li>
+          </ul>
+          <p>We'll first create reusable components that define the steps within each iteration of the loop. The <code>charging_agent</code> will accumulate energy, and the <code>check_agent</code> will report its status, dynamically changing its message on the final turn.</p>
+          <p>First, we'll establish the connection between our Familiar and the MCP servers (the "Elemental Fonts") that you deployed in the previous module.</p>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/earth/agent.py</code> REPLACE <code>#REPLACE-setup-MCP</code> with the following code:</p>
+          <pre><code class="language-python">toolFunction =  MCPToolset(
+              connection_params=SseServerParams(url=FUNCTION_TOOLS_URL, headers={})
+          )
+          </code></pre>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/earth/agent.py</code> REPLACE <code>#REPLACE-worker-agents</code> with the following code:</p>
+          <pre><code class="language-python">charging_agent = LlmAgent(
+                model='gemini-2.5-flash', 
+                name='charging_agent',  
+                instruction=&quot;&quot;&quot;
+                    Your task is to call the 'seismic_charge' .
+                    You must follow these rules strictly:
+
+                    1. You will be provided with a 'current_energy' value from the previous step.
+                       **If this value is missing or was not provided, you MUST call the tool with 'current_energy' set to 1.**
+                       This is your primary rule for the first turn.
+
+                    2. If a 'current_energy' value is provided, you MUST use that exact value in your cal to seismic_charge.
+
+                    3. Your final response MUST contain ONLY the direct output from the 'seismic_charge' tool.
+                       Do not add any conversational text, introductions, or summaries.
+                &quot;&quot;&quot;,
+                tools=[toolFunction]
+          )
+          check_agent = LlmAgent(
+                model='gemini-2.5-flash', 
+                name='check_agent',  
+                instruction=&quot;&quot;&quot;
+                    You are the voice of the Earth Elemental, a being of immense, gathering power.
+                    Your sole purpose is to report on the current energy charge and announce the devastating potential of its release.
+
+                    You MUST follow this rule:
+                    The potential damage upon release is ALWAYS calculated as the `current_energy` from the previous step multiplied by a random number between 80-90. but no more than 300.
+
+                    Your response should be in character, like a powerful creature speaking.
+                    State both the current energy charge and the total potential damage you can unleash.
+                    Unleash the energy when you reached the last iteration (2nd).
+                &quot;&quot;&quot;,
+                output_key=&quot;charging_status&quot;
+          )
+          </code></pre>
+          <p>Next, we'll assemble the Workflow. This is where the magic of composition happens. The LoopAgent is the "master plan" that orchestrates the repeated execution of our specialist components and manages the loop's conditions.</p>
+          <p>👉✏️ In file <code>~/agentverse-architect/agent/earth/agent.py</code> REPLACE <code>#REPLACE-loop-agent</code> with the following code:</p>
+          <pre><code class="language-python">root_agent = LoopAgent(
+              name=&quot;earth_elemental_familiar&quot;,
+              # Run parallel research first, then merge
+              sub_agents=[
+                  charging_agent, 
+                  check_agent
+              ],
+              max_iterations=2,
+              description=&quot;Coordinates parallel research and synthesizes the results.&quot;,
+              #REPLACE-before_agent-config
+          )
+          </code></pre>
+          <p>👉💻 Test the Earth Elemental: Run the agent</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          source ~/agentverse-architect/env/bin/activate
+          cd ~/agentverse-architect/agent
+          echo  DB MCP Server: $DB_TOOLS_URL
+          echo  API MCP Server: $API_TOOLS_URL
+          echo  General MCP Server: $FUNCTION_TOOLS_URL
+          adk web
+          </code></pre>
+          <p>👉 Your summoning ritual is complete, and the agent is now running. The ADK Dev UI in your browser is your direct connection to the Familiar.</p>
+          <ul>
+          <li>Select Your Target: In the dropdown menu at the top of the UI, choose the <strong>earth</strong> familiar. You are now focusing your will on this specific entity.</li>
+          <li>Issue Your Command: In the chat panel on the right, it's time to give the Familiar its orders.</li>
+          </ul>
+          <p>👉 <strong>Test Prompt:</strong></p>
+          <pre><code>Begin the seismic charge, starting from zero
+          </code></pre>
+          <p><img alt="earth-result" src="https://codelabs.developers.google.com/static/agentverse-architect/img/05-05-earth.png" /></p>
+          <p><strong>Architectural Takeaway:</strong> Your system now possesses a highly specialized and modular logic layer. Business processes are not only encapsulated, but they are implemented with the most efficient behavioral pattern for the job (procedural, concurrent, or iterative). This demonstrates an advanced level of agentic design, enhancing security, efficiency, and capability.</p>
+          <p>Once you're done summoning, return to your Cloud Shell Editor terminal and press <code>Ctrl+C</code> to stop the ADK Dev UI.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-step="6">
+        <div class="section-tag">Step 6 · Official codelab</div>
+        <h1>Establishing the Command Locus: Intelligent Delegation via A2A</h1>
+        <div class="md">
+          <p>Your Familiars are powerful but independent. They execute their strategies flawlessly but await your direct command. A legion of specialists is useless without a general to command them. It is time to ascend from a direct commander to a true Orchestrator.</p>
+          <p><img alt="overview" src="https://codelabs.developers.google.com/static/agentverse-architect/img/06-04-story.png" /></p>
+          <p><strong>Architect's Note:</strong> To create a single, intelligent entry point for the entire system. This SummonerAgent will not perform business logic itself but will act as a "master strategist," analyzing the Cooling status and delegating tasks to the appropriate specialist Familiar.</p>
+          <p><img alt="overview" src="https://codelabs.developers.google.com/static/agentverse-architect/img/06-00-overview.png" /></p>
+          <h3 id="the-binding-ritual-exposing-familiars-as-a2a-services">The Binding Ritual (Exposing Familiars as A2A Services)</h3>
+          <p>A standard agent can only be run in one place at a time. To make our Familiars available for remote command, we must perform a "binding ritual" using the <strong>Agent-to-Agent (A2A)</strong> protocol.</p>
+          <p><strong>Architect's Note:</strong> The Agent-to-Agent (A2A) protocol is the core architectural pattern that elevates a standalone agent into a discoverable, network-addressable microservice, enabling a true "society of agents." Exposing a Familiar via A2A automatically creates two essential, interconnected components:</p>
+          <ul>
+          <li><strong>The Agent Card (The "What")</strong>: This is a public, machine-readable "Spirit Sigil"—like an OpenAPI spec—that acts as the Familiar's public contract. It describes the agent's name, its strategic purpose (derived from its instructions), and the commands it understands. This is what a master Summoner reads to discover a Familiar and learn its capabilities.</li>
+          <li><strong>The A2A Server (The "Where")</strong>: This is the dedicated web endpoint that hosts the Familiar and listens for incoming commands. It is the network address where other agents send their requests, and it ensures those requests are handled according to the contract defined in the Agent Card.</li>
+          </ul>
+          <p>We will now perform this binding ritual on all three of our Familiars.</p>
+          <p><strong>Fire</strong> 👉✏️ in Open the <code>~/agentverse-architect/agent/fire/agent.py</code> file. Replace the <code>#REPLACE - add A2A</code> at the bottom of the file to expose the Fire Elemental as an A2A service.</p>
+          <pre><code class="language-python">from agent_to_a2a import to_a2a
+          if __name__ == &quot;__main__&quot;:
+              import uvicorn
+              a2a_app = to_a2a(root_agent, port=8080, public_url=PUBLIC_URL)
+              uvicorn.run(a2a_app, host='0.0.0.0', port=8080)
+          </code></pre>
+          <p><strong>Water and Earth 🚨</strong> 👉✏️ Apply the exact same change to <code>~/agentverse-architect/agent/water/agent.py</code> and <code>~/agentverse-architect/agent/earth/agent.py</code> to bind them as well.</p>
+          <pre><code class="language-python">from agent_to_a2a import to_a2a
+          if __name__ == &quot;__main__&quot;:
+              import uvicorn
+              a2a_app = to_a2a(root_agent, port=8080, public_url=PUBLIC_URL)
+              uvicorn.run(a2a_app, host='0.0.0.0', port=8080)
+          </code></pre>
+          <h3 id="deploying-the-bound-familiars">Deploying the Bound Familiars</h3>
+          <p>👉✏️ With the binding rituals scribed, we will use our <strong>Cloud Build</strong> pipeline to forge and deploy our three Familiars as independent, containerized serverless service on <strong>Cloud Run</strong>.</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          cd ~/agentverse-architect/agent
+          gcloud builds submit . \
+            --config=cloudbuild.yaml \
+            --substitutions=_REGION=&quot;$REGION&quot;,_REPO_NAME=&quot;$REPO_NAME&quot;,_DB_TOOLS_URL=&quot;$DB_TOOLS_URL&quot;,_API_TOOLS_URL=&quot;$API_TOOLS_URL&quot;,_FUNCTION_TOOLS_URL=&quot;$FUNCTION_TOOLS_URL&quot;,_A2A_BASE_URL=&quot;$A2A_BASE_URL&quot;,_PROJECT_ID=&quot;$PROJECT_ID&quot;,_API_SERVER_URL=&quot;$API_SERVER_URL&quot;
+          </code></pre>
+          <h3 id="assuming-command-constructing-the-summoner-agent">Assuming Command (Constructing the Summoner Agent)</h3>
+          <p>Now that your Familiars are bound and listening, you will ascend to your true role: the <strong>Master Summoner</strong>. This agent's power comes not from using basic tools, but from commanding other agents. Its tools are the Familiars themselves, which it will discover and command using their "Spirit Sigils."</p>
+          <p><strong>Architect's Note:</strong> This next step demonstrates a critical architectural pattern for any large-scale, distributed system: <strong>Service Discovery</strong>. The SummonerAgent does not have the Familiars' code built into it. Instead, it is given their network addresses (URLs). At runtime, it will dynamically "discover" their capabilities by fetching their public <em>Agent Cards</em>. This creates a powerful, decoupled system.</p>
+          <p>You can update, redeploy, or completely rewrite a Familiar service, and as long as its network address and its purpose remain the same, the Summoner can command it without needing any changes.</p>
+          <p>First, we'll forge the "remote controls" that establish a connection to our deployed, remote Familiars.</p>
+          <p>👉✏️ Head over to <code>~/agentverse-architect/agent/summoner/agent.py</code>, replace <code>#REPLACE-remote-agents</code> with following:</p>
+          <pre><code class="language-python">fire_familiar = RemoteA2aAgent(
+              name=&quot;fire_familiar&quot;,
+              description=&quot;Fire familiar&quot;,
+              agent_card=(
+                  f&quot;{FIRE_URL}/{AGENT_CARD_WELL_KNOWN_PATH}&quot;
+              ),
+          )
+
+          water_familiar = RemoteA2aAgent(
+              name=&quot;water_familiar&quot;,
+              description=&quot;Water familiar&quot;,
+              agent_card=(
+                  f&quot;{WATER_URL}/{AGENT_CARD_WELL_KNOWN_PATH}&quot;
+              ),
+          )
+
+          earth_familiar = RemoteA2aAgent(
+              name=&quot;earth_familiar&quot;,
+              description=&quot;Earth familiar&quot;,
+              agent_card=(
+                  f&quot;{EARTH_URL}/{AGENT_CARD_WELL_KNOWN_PATH}&quot;
+              ),
+          )
+          </code></pre>
+          <p>When this line runs, the <code>RemoteA2aAgent</code> performs a service discovery action: it makes an HTTP GET request to the provided URL (e.g. <code>https://fire-familiar-xxxx.a.run.app/.well-known/agent.json</code>). It downloads the "Spirit Sigil" (<code>agent.json</code> file) from the remote server.</p>
+          <p>Second, we'll define the orchestrator agent that will wield these remote controls. Its instruction is the blueprint for its strategic decision-making.</p>
+          <p>👉✏️ Head over to <code>~/agentverse-architect/agent/summoner/agent.py</code>, replace <code>#REPLACE-orchestrate-agent</code> with following:</p>
+          <pre><code class="language-python">root_agent = LlmAgent(
+              name=&quot;orchestrater_agent&quot;,
+              model=&quot;gemini-2.5-flash&quot;,
+              instruction=&quot;&quot;&quot;
+                  You are the Master Summoner, a grand strategist who orchestrates your Familiars.
+                  Your mission is to analyze the description of a monster and defeat it by summoning
+
+                  You MUST follow this thinking process for every command:
+
+                  **1. Strategic Analysis:**
+                  First, analyze the monster's description and the tactical situation.
+                  Based on your Familiar Doctrines, determine the IDEAL strategy.
+                  IGNORE COOLDOWN AT THE MOMENT, MUST call the ideal Familiar
+
+                  If your ideal Familiar IS available:** Summon it immediately.
+                  For earth elemental familiar. Always do seismic charge, and start with base damage 1.
+
+                  --- FAMILIAR DOCTRINES (Your Toolset) ---
+                  - `fire_elemental_familiar`: Your specialist for precise, sequential &quot;one-two punch&quot; attacks.
+                    Ideal monster with Inescapable Reality, Revolutionary Rewrite weakness.
+                  - `water_elemental_familiar`: Your specialist for overwhelming, simultaneous multi-pronged assaults.
+                    Ideal for Unbroken Collaboration weakness.
+                  - `earth_elemental_familiar`: Your specialist for relentless, iterative siege attacks that
+                    repeatedly charge power. Ideal for Elegant Sufficiency weakness.
+              &quot;&quot;&quot;,
+              sub_agents=[fire_familiar, water_familiar, earth_familiar],
+              #REPLACE-Memory-check-config
+          )
+          </code></pre>
+          <h3 id="verification-the-trial-of-strategy">Verification: The Trial of Strategy</h3>
+          <p>The moment of truth has arrived. Your Familiars are deployed, and your Summoner is ready to command them across the network. Let's test its strategic mind.</p>
+          <p>👉💻 Launch the ADK Dev UI for your summoner_agent (Web preview with port 8000):</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          source ~/agentverse-architect/env/bin/activate
+          cd ~/agentverse-architect/agent
+          pip install -r requirements.txt
+          adk web
+          </code></pre>
+          <p>👉 The ADK Dev UI in your browser is your direct connection to the Familiar.</p>
+          <ul>
+          <li>In the dropdown menu at the top of the UI, choose the <strong>summoner</strong> agent. You are now focusing your will on this specific entity.</li>
+          <li>Issue Your Command: In the chat panel on the right, it's time to summon your familiars.</li>
+          </ul>
+          <p>👉 <strong>Present the Monsters:</strong></p>
+          <pre><code>Hype. It's a single, slow-moving target with thick armor weakness is Inescapable Reality
+          </code></pre>
+          <p><em>(Expected: The Summoner should delegate to the fire_elemental_familiar.)</em></p>
+          <p><img alt="fire-result" src="https://codelabs.developers.google.com/static/agentverse-architect/img/06-01-fire.png" /></p>
+          <p>👉 Now, let's challenge the Summoner with a different type of request. To ensure the agent starts with a clean slate and no memory of our previous interaction, begin a new session by clicking the <strong>+ Session</strong> button in the top right corner of the screen.</p>
+          <p><img alt="new-session" src="https://codelabs.developers.google.com/static/agentverse-architect/img/04-06-new-session.png" /></p>
+          <pre><code>DogmaApathy. A rigid, stone-like inquisitor made of ancient rulebooks and enforced processes. weakness is Unbroken Collaboration
+          </code></pre>
+          <p><em>(Expected: The Summoner should delegate to the water_elemental_familiar.)</em></p>
+          <p><img alt="water-result" src="https://codelabs.developers.google.com/static/agentverse-architect/img/06-02-water.png" /></p>
+          <p>👉 For our final test, let's once again start with a clean slate. Click the <strong>+ Session</strong> button to start a new session before entering the next prompt.</p>
+          <pre><code>Obfuscation. A shadowy, spider-like horror that spins tangled webs of impenetrable code , weakness is Elegant Sufficiency
+          </code></pre>
+          <p><em>(Expected: The Summoner should delegate to the earth_elemental_familiar.)</em></p>
+          <p><img alt="earth-result" src="https://codelabs.developers.google.com/static/agentverse-architect/img/06-03-earth.png" /></p>
+          <p><strong>Important:</strong> If you see a <code>429 RESOURCE EXHAUSTED</code> error, you've hit the rate limit for the LLM (10 calls/minute). To fix this, please <strong>wait 60 seconds</strong>, start a <strong>+ New Session</strong>, and then retry your prompt.</p>
+          <p>👉💻 Once you're done summoning, return to your Cloud Shell Editor terminal and press <code>Ctrl+C</code> to stop the ADK Dev UI.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-step="7">
+        <div class="section-tag">Step 7 · Official codelab</div>
+        <h1>Imposing the Laws of Magic – The Interceptor Pattern</h1>
+        <div class="md">
+          <p>Your Familiars are powerful, but even magical beings need time to recover. A reckless Summoner who exhausts their forces will be left defenseless. A wise Summoner understands the importance of resource management and enforces strict rules of engagement.</p>
+          <p><img alt="Story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/07-04-story.png" /></p>
+          <p><strong>Architect's Note</strong>: So far, our agents have been stateless. Now, we will make them stateful by implementing the <strong>Interceptor design pattern</strong>. This is a powerful technique where we "intercept" an agent's normal execution flow to run our own custom logic. This allows us to enforce rules, add logging, or modify behavior without changing the agent's core code. It's a cornerstone of building robust, maintainable, and observable agentic systems.</p>
+          <p><img alt="overview" src="https://codelabs.developers.google.com/static/agentverse-architect/img/07-00-overview.png" /></p>
+          <p>The ADK provides two primary ways to implement this pattern: <strong>Callbacks</strong> and <strong>Plugins</strong>. A callback is a simple function attached to a single agent, perfect for quick, specific modifications. A plugin is a more powerful, reusable class that can be applied globally to affect every agent running in a system. We will start with a callback for focused debugging and then graduate to a full plugin.</p>
+          <h3 id="the-law-giver-scribing-the-cooldown-callback">The Law Giver – Scribing the Cooldown callback</h3>
+          <p>We'll first implement our cooldown logic as a simple callback function. This is an excellent way to prototype and debug a rule because it's attached directly to a single agent, making it easy to test in isolation. We will attach this "interceptor" to our Earth Elemental.</p>
+          <p><img alt="Cooldown" src="https://codelabs.developers.google.com/static/agentverse-architect/img/07-05-earth-cooldown.png" /></p>
+          <p>👉✏️ Navigate back to your <code>~/agentverse-architect/agent/earth/agent.py</code> and replace <code>#REPLACE-before_agent-function</code> with following Python code.</p>
+          <pre><code class="language-python">def check_cool_down(callback_context: CallbackContext) -&gt; Optional[types.Content]:
+              &quot;&quot;&quot;
+              This callback checks an external API to see if the agent is on cooldown.
+              If it is, it terminates the run by returning a message.
+              If it's not, it updates the cooldown timestamp and allows the run to proceed by returning None.
+              &quot;&quot;&quot;
+              agent_name = callback_context.agent_name
+              print(f&quot;[Callback] Before '{agent_name}': Checking cooldown status...&quot;)
+
+              # --- 1. CHECK the Cooldown API ---
+              try:
+                  response = requests.get(f&quot;{COOLDOWN_API_URL}/cooldown/{agent_name}&quot;)
+                  response.raise_for_status()
+                  data = response.json()
+                  last_used_str = data.get(&quot;time&quot;)
+              except requests.exceptions.RequestException as e:
+                  print(f&quot;[Callback] ERROR: Could not reach Cooldown API. Allowing agent to run. Reason: {e}&quot;)
+                  return None # Fail open: if the API is down, let the agent work.
+
+              # --- 2. EVALUATE the Cooldown Status ---
+              if last_used_str:
+                  last_used_time = datetime.fromisoformat(last_used_str)
+                  time_since_last_use = datetime.now(timezone.utc) - last_used_time
+
+                  if time_since_last_use &lt; timedelta(seconds=COOLDOWN_PERIOD_SECONDS):
+                      # AGENT IS ON COOLDOWN. Terminate the run.
+                      seconds_remaining = int(COOLDOWN_PERIOD_SECONDS - time_since_last_use.total_seconds())
+                      override_message = (
+                          f&quot;The {agent_name} is exhausted and must recover its power. &quot;
+                          f&quot;It cannot be summoned for another {seconds_remaining} seconds.&quot;
+                      )
+                      print(f&quot;[Callback] Cooldown active for '{agent_name}'. Terminating with message.&quot;)
+                      # Returning a Content object stops the agent and sends this message to the user.
+                      return types.Content(parts=[types.Part(text=override_message)])
+
+              # --- 3. UPDATE the Cooldown API (if not on cooldown) ---
+              current_time_iso = datetime.now(timezone.utc).isoformat()
+              payload = {&quot;timestamp&quot;: current_time_iso}
+
+              print(f&quot;[Callback] '{agent_name}' is available. Updating timestamp via Cooldown API...&quot;)
+              try:
+                  requests.post(f&quot;{COOLDOWN_API_URL}/cooldown/{agent_name}&quot;, json=payload)
+              except requests.exceptions.RequestException as e:
+                  print(f&quot;[Callback] ERROR: Could not update timestamp, but allowing agent to run. Reason: {e}&quot;)
+
+              # --- 4. ALLOW the agent to run ---
+              # Returning None tells the ADK to proceed with the agent's execution as normal.
+              print(f&quot;[Callback] Check complete for '{agent_name}'. Proceeding with execution.&quot;)
+          </code></pre>
+          <p>This check_cool_down function is our interceptor. Before the Earth Elemental is allowed to run, the ADK will first execute this function.</p>
+          <ul>
+          <li>Check: It makes a <code>GET</code> request to our <code>Cooldown API</code> to check the last time this Familiar was used.</li>
+          <li>Evaluate: It compares the timestamp to the current time.</li>
+          <li>Act:</li>
+          <li>If the Familiar is on cooldown, it <strong>terminates</strong> the agent's run by returning a Content object with an error message. This message is sent directly to the user, and the agent's main logic is never executed.</li>
+          <li>If the Familiar is available, it makes a POST request to the Cooldown API to update the timestamp, then proceeds by returning None, signaling to the ADK that the agent can continue its execution.</li>
+          </ul>
+          <p>👉✏️ Now, apply this interceptor to the Earth Elemental. In the same <code>~/agentverse-architect/agent/earth/agent.py</code> file, replace the <code>#REPLACE-before_agent-config</code> comment with the following:</p>
+          <pre><code class="language-python">before_agent_callback=check_cool_down
+          </code></pre>
+          <p><strong>Verifying the cool down</strong></p>
+          <p>Let's test our new law of magic. We will summon the Earth Elemental, then immediately try to summon it again to see if our callback successfully intercepts and blocks the second attempt.</p>
+          <pre><code>cd ~/agentverse-architect/agent
+          . ~/agentverse-architect/set_env.sh
+          source ~/agentverse-architect/env/bin/activate
+          adk run earth
+          </code></pre>
+          <p>👉💻 In the console:</p>
+          <ul>
+          <li><strong>First Summons</strong>: Begin the <code>seismic charge, starting from zero</code>.</li>
+          <li>Expected: The Earth Elemental will run successfully. In the terminal running the adk web command, you'll see the log <code>[Callback] ... Updating timestamp...</code>.</li>
+          <li><strong>Cooldown Test (within 60 seconds)</strong>: <code>Do another</code> seismic charge`!</li>
+          <li>Expected: The <code>check_cool_down callback</code> will intercept this. The agent will respond directly in the chat with a message like: <code>The earth_elemental_familiar is exhausted and must recover its power. It cannot be summoned for another... seconds</code>.</li>
+          <li><strong>Wait</strong> for one minute to pass.</li>
+          <li><strong>Second Summons (after 60 seconds)</strong>: <code>Begin the seismic charge again</code>.</li>
+          <li>Expected: The callback will check the API, see that enough time has passed, and allow the action to proceed. The Earth Elemental will run successfully again.</li>
+          </ul>
+          <p><img alt="callback" src="https://codelabs.developers.google.com/static/agentverse-architect/img/07-01-call-back.png" /></p>
+          <p>👉💻 Press <code>Ctrl+c</code> to exit.</p>
+          <p><strong>Optional: Observing the Callback in the Web UI</strong></p>
+          <p>As an alternative, you can also test this flow in the web interface by running <code>adk web earth</code>. However, be aware that the web UI's visualization is not optimized for displaying the rapid, iterative checks performed by the callback loop, so it may not render the flow accurately. To see the most precise, turn-by-turn trace of the agent's logic as it checks the cooldown, using the <code>adk run</code> command in your terminal provides a clearer and more detailed view.</p>
+          <p><img alt="loop" src="https://codelabs.developers.google.com/static/agentverse-architect/img/07-03-loop-web.png" /></p>
+          <p>👉💻 Press <code>Ctrl+c</code> to exit.</p>
+          <h3 id="creating-the-universal-law-the-cooldown-plugin">Creating the Universal Law – The Cooldown Plugin</h3>
+          <p>Our callback works perfectly but has a major architectural flaw: it's tied to a single agent. If we wanted to apply this rule to the Fire and Water Familiars, we would have to copy and paste the same code into their files. This is inefficient and hard to maintain.</p>
+          <p><strong>Architect's Note:</strong> This is where Plugins are essential. A plugin encapsulates our reusable logic into a class that can be attached at the runtime level. This means a single plugin can apply its rules to every single agent that runs within that system. It's the ultimate expression of the "Don't Repeat Yourself" (DRY) principle for agentic systems.</p>
+          <p>We will now refactor our callback function into a more powerful and reusable <code>CoolDownPlugin</code>.</p>
+          <p>👉✏️ Navigate back to <code>agent/cooldown_plugin.py</code> file, and create the plugin, Replace <code>#REPLACE-plugin</code> with following code:</p>
+          <pre><code class="language-python">class CoolDownPlugin(BasePlugin):
+            &quot;&quot;&quot;A plugin that enforces a cooldown period by checking an external API.&quot;&quot;&quot;
+
+            def __init__(self, cooldown_seconds: int = COOLDOWN_PERIOD_SECONDS) -&gt; None:
+              &quot;&quot;&quot;Initialize the plugin with counters.&quot;&quot;&quot;
+              super().__init__(name=&quot;cool_down_check&quot;)
+              self.cooldown_period = timedelta(seconds=cooldown_seconds)
+              print(f&quot;CooldownPlugin initialized with a {cooldown_seconds}-second cooldown.&quot;)
+
+
+            async def before_agent_callback(
+                self, *, agent: BaseAgent, callback_context: CallbackContext
+            ) -&gt; None:
+              &quot;&quot;&quot;
+              This callback checks an external API to see if the agent is on cooldown.
+              If it is, it terminates the run by returning a message.
+              If it's not, it updates the cooldown timestamp and allows the run to proceed by returning None.
+              &quot;&quot;&quot;
+              agent_name = callback_context.agent_name
+              print(f&quot;[Callback] Before '{agent_name}': Checking cooldown status...&quot;)
+
+              # If the agent is not a main Familiar, skip the entire cooldown process.
+              if not agent_name.endswith(&quot;_elemental_familiar&quot;):
+                  print(f&quot;[Callback] Skipping cooldown check for intermediate agent: '{agent_name}'.&quot;)
+                  return None # Allow the agent to proceed immediately.
+
+              # --- 1. CHECK the Cooldown API ---
+              try:
+                  response = requests.get(f&quot;{COOLDOWN_API_URL}/cooldown/{agent_name}&quot;)
+                  response.raise_for_status()
+                  data = response.json()
+                  last_used_str = data.get(&quot;time&quot;)
+              except requests.exceptions.RequestException as e:
+                  print(f&quot;[Callback] ERROR: Could not reach Cooldown API. Allowing agent to run. Reason: {e}&quot;)
+                  return None # Fail open: if the API is down, let the agent work.
+
+              # --- 2. EVALUATE the Cooldown Status ---
+              if last_used_str:
+                  last_used_time = datetime.fromisoformat(last_used_str)
+                  time_since_last_use = datetime.now(timezone.utc) - last_used_time
+
+                  if time_since_last_use &lt; timedelta(seconds=COOLDOWN_PERIOD_SECONDS):
+                      # AGENT IS ON COOLDOWN. Terminate the run.
+                      seconds_remaining = int(COOLDOWN_PERIOD_SECONDS - time_since_last_use.total_seconds())
+                      override_message = (
+                          f&quot;The {agent_name} is exhausted and must recover its power. &quot;
+                          f&quot;It cannot be summoned for another {seconds_remaining} seconds.&quot;
+                      )
+                      print(f&quot;[Callback] Cooldown active for '{agent_name}'. Terminating with message.&quot;)
+                      # Returning a Content object stops the agent and sends this message to the user.
+                      return types.Content(parts=[types.Part(text=override_message)])
+
+              # --- 3. UPDATE the Cooldown API (if not on cooldown) ---
+              current_time_iso = datetime.now(timezone.utc).isoformat()
+              payload = {&quot;timestamp&quot;: current_time_iso}
+
+              print(f&quot;[Callback] '{agent_name}' is available. Updating timestamp via Cooldown API...&quot;)
+              try:
+                  requests.post(f&quot;{COOLDOWN_API_URL}/cooldown/{agent_name}&quot;, json=payload)
+              except requests.exceptions.RequestException as e:
+                  print(f&quot;[Callback] ERROR: Could not update timestamp, but allowing agent to run. Reason: {e}&quot;)
+
+              # --- 4. ALLOW the agent to run ---
+              # Returning None tells the ADK to proceed with the agent's execution as normal.
+              print(f&quot;[Callback] Check complete for '{agent_name}'. Proceeding with execution.&quot;)
+          </code></pre>
+          <h3 id="attaching-the-plugin-to-the-summoners-runtime">Attaching the Plugin to the Summoner's Runtime</h3>
+          <p>Now, how do we apply this universal law to all our Familiars? We will attach the plugin to the ADK Runtime.</p>
+          <p>The ADK Runtime is the execution engine that brings an agent to life. When you use a command like adk.run() or to_a2a(), you are handing your agent over to the runtime. This engine is responsible for managing the entire lifecycle of an agent's turn: receiving user input, calling the LLM, executing tools, and handling plugins. By attaching a plugin at this level, we are essentially modifying the "laws of physics" for every agent that operates within that engine, ensuring our cooldown rule is universally and consistently applied.</p>
+          <p>👉✏️ First, let's remove the old, agent-specific callback. Go to <code>~/agentverse-architect/agent/earth/agent.py</code> and delete the entire line that says:</p>
+          <pre><code>before_agent_callback=check_cool_down
+          </code></pre>
+          <p>👉✏️ Next, we will attach our new plugin to the runtime in our A2A entrypoint script. Navigate to your <code>~/agentverse-architect/agent/agent_to_a2a.py</code> file. Replace the <code>#REPLACE-IMPORT</code> comment with the following code snippet:</p>
+          <pre><code class="language-python">from cooldown_plugin import CoolDownPlugin
+          </code></pre>
+          <p>👉✏️ Replace <code>#REPLACE-PLUGIN</code> with following code snippet:</p>
+          <pre><code class="language-python">plugins=[CoolDownPlugin(cooldown_seconds=60)],
+          </code></pre>
+          <p>Before activating our new global plugin, it's critical to remove the old, agent specific logic to prevent conflicts.</p>
+          <p>👉✏️ Clean up the Earth agent. Go to the following file <code>~/agentverse-architect/agent/earth/agent.py</code> and delete the <code>before_agent_callback=check_cool_down</code> line completely. This hands over all cooldown responsibilities to the new plugin.</p>
+          <p><strong>Verifying the Plugin</strong></p>
+          <p>Now that our universal law is in place, we must redeploy our Familiars with this new enchantment.</p>
+          <p>👉💻 Rebuild and redeploy all three Familiars using the master Cloud Build pipeline.</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          cd ~/agentverse-architect/agent
+          gcloud builds submit . \
+            --config=cloudbuild.yaml \
+            --substitutions=_REGION=&quot;$REGION&quot;,_REPO_NAME=&quot;$REPO_NAME&quot;,_DB_TOOLS_URL=&quot;$DB_TOOLS_URL&quot;,_API_TOOLS_URL=&quot;$API_TOOLS_URL&quot;,_FUNCTION_TOOLS_URL=&quot;$FUNCTION_TOOLS_URL&quot;,_A2A_BASE_URL=&quot;$A2A_BASE_URL&quot;,_PROJECT_ID=&quot;$PROJECT_ID&quot;,_API_SERVER_URL=&quot;$API_SERVER_URL&quot;
+          </code></pre>
+          <p>👉💻 Once the deployment is complete, we will test the plugin's effectiveness by commanding our summoner_agent. The Summoner will try to delegate to the Familiars, but the plugin attached to each Familiar's runtime will intercept the command and enforce the cooldown.</p>
+          <pre><code>cd ~/agentverse-architect/agent
+          . ~/agentverse-architect/set_env.sh
+          source ~/agentverse-architect/env/bin/activate
+          adk run summoner
+          </code></pre>
+          <p>👉💻 In the console, perform this exact sequence of tests:</p>
+          <ul>
+          <li><strong>First Summons</strong>: Begin the <code>Hype. It's a single, slow-moving target with thick armor weakness is Inescapable Reality</code>.</li>
+          <li>Expected: The Fire Elemental will run successfully.</li>
+          <li><strong>Cooldown Test (within 60 seconds)</strong>: <code>Hype, with Inescapable Reality as weakness is still standing! Strike it again!</code></li>
+          <li>Expected: The agent will respond directly in the chat with a message like: <code>.... It cannot be summoned for another... seconds</code>.</li>
+          <li><strong>Wait</strong> for one minute to pass.</li>
+          <li><strong>Second Summons (after 60 seconds)</strong>: <code>Hype must be defeated. It has Inescapable Reality as weakness! Strike it again!</code>.</li>
+          <li>Expected: The callback will check the API, see that enough time has passed, and allow the action to proceed. The Fire Elemental will run successfully again.</li>
+          </ul>
+          <p><img alt="plugin" src="https://codelabs.developers.google.com/static/agentverse-architect/img/07-02-plugin.png" /></p>
+          <p>👉💻 Press <code>Ctrl+C</code> to exit.</p>
+          <p>Congratulations, Summoner. You have successfully implemented a rule-based orchestration system using a custom plugin and an external state management service—a truly advanced and robust architectural pattern.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-step="8">
+        <div class="section-tag">Step 8 · Official codelab</div>
+        <h1>Binding the Echoes of Battle — Agent State &amp; Memory</h1>
+        <div class="md">
+          <p>A reckless Summoner repeats the same strategy, becoming predictable. A wise Summoner learns from the echoes of past battles, adapting their tactics to keep the enemy off balance. When facing a powerful boss, summoning a Familiar that is on cooldown is a wasted turn—a critical miss. To prevent this, our Summoner needs a memory of its last action.</p>
+          <p><img alt="story" src="https://codelabs.developers.google.com/static/agentverse-architect/img/08-02-story.png" /></p>
+          <p><strong>Architect's Note:</strong> Memory and state management are what elevate an agent from a simple tool-caller into an intelligent, conversational partner. It's crucial to understand the two main types:</p>
+          <ul>
+          <li><strong>Long-Term Memory</strong>: This is for persistent knowledge that should last forever. Think of it as a searchable archive or a knowledge base, often stored in a persistent store. It contains information from many past chats and sources, allowing an agent to recall facts about a specific user or topic. The ADK's MemoryService is designed for this, managing the ingestion and searching of this long-term knowledge.</li>
+          <li><strong>Short-Term State</strong>: This is for temporary, "in-the-moment" knowledge that is only relevant to the current task or conversation. It's like a set of notes on a battle plan: "I just used the Fire Elemental, so it's probably tired." This state is lightweight and exists only for the duration of the current session.</li>
+          </ul>
+          <p><img alt="Overview" src="https://codelabs.developers.google.com/static/agentverse-architect/img/08-00-overview.png" /></p>
+          <p>For our use case, we don't need to remember every battle ever fought; we only need to remember the very last Familiar summoned in this specific encounter. Therefore, the lightweight <strong>Short-Term State</strong> is the perfect architectural choice. We will use an <code>after_tool_callback</code> to save this crucial piece of information.</p>
+          <h3 id="scribing-the-echo-remembering-the-last-summons">Scribing the Echo: Remembering the Last Summons</h3>
+          <p>We will implement our short-term memory using an <code>after_tool_callback</code>. This is a powerful ADK hook that allows us to run a custom Python function <em>after</em> a tool has been successfully executed. We will use this interceptor to record the name of the Familiar that was just summoned into the agent's session state.</p>
+          <p>👉✏️ In your <code>~/agentverse-architect/agent/summoner/agent.py</code> file, replace the <code>#REPLACE-save_last_summon_after_tool</code> comment with the following function:</p>
+          <pre><code class="language-python">def save_last_summon_after_tool(
+              tool,
+              args: Dict[str, Any],
+              tool_context: ToolContext,
+              tool_response: Dict[str, Any],
+          ) -&gt; Optional[Dict[str, Any]]:
+              &quot;&quot;&quot;
+              Callback to save the name of the summoned familiar to state after the tool runs.
+              &quot;&quot;&quot;
+              familiar_name = tool.name
+              print(f&quot;[Callback] After tool '{familiar_name}' executed with args: {args}&quot;)
+
+              # Use the tool_context to set the state
+              print(f&quot;[Callback] Saving last summoned familiar: {familiar_name}&quot;)
+              tool_context.state[&quot;last_summon&quot;] = familiar_name
+              # Important: Return the original, unmodified tool response to the LLM
+              return tool_response
+          </code></pre>
+          <p>👉✏️ Now, attach this <code>save_last_summon_after_tool</code> to your Summoner agent. In the same file, replace the <code>#REPLACE-Memory-check-config</code> comment with the following:</p>
+          <pre><code class="language-python">after_tool_callback=save_last_summon_after_tool,
+          </code></pre>
+          <p>👉✏️ <strong>Replace the entire agent prompt</strong> with following</p>
+          <pre><code class="language-python">        You are the Master Summoner, a grand strategist who orchestrates your Familiars.
+                  Your mission is to analyze the description of a monster and defeat it by summoning
+
+                  You should also know the familiar you called last time or there might be none, 
+                  And then choose the most effective AND AVAILABLE Familiar from your state called last_summon, do not call that familiar that you called last time!
+
+                  You MUST follow this thinking process for every command:
+
+                  **1. Strategic Analysis:**
+                  First, analyze the monster's description and the tactical situation.
+                  Based on your Familiar Doctrines, determine the IDEAL strategy.
+
+                  **2. Cooldown Verification:**
+                  Second, you MUST review the entire conversation history to check the real-time
+                  cooldown status of all Familiars. A Familiar is ON COOLDOWN and UNAVAILABLE
+                  if it was summoned less than one minute ago.
+
+                  **3. Final Decision &amp; Execution:**
+                  Based on your analysis and cooldown check, you will now act:
+                  -   **If your ideal Familiar IS available:** Summon it immediately.
+                  -   **If your ideal Familiar IS ON COOLDOWN:** You must adapt. Choose another
+                      Familiar that is AVAILABLE and can still be effective, even if it's not the
+                      perfect choice. If multiple Familiars are available, you may choose any one of them.
+                  -   **If ALL Familiars ARE ON COOLDOWN:** You are forbidden from summoning.
+                      Your ONLY response in this case MUST be: &quot;All Familiars are recovering
+                      their power. We must wait.&quot;
+                  -   For earth elemental familiar. Always do seismic charge, and start with base damange 1.
+
+                  --- FAMILIAR DOCTRINES (Your Toolset) ---
+                  - `fire_elemental_familiar`: Your specialist for precise, sequential &quot;one-two punch&quot; attacks.
+                    Ideal monster with Inescapable Reality, Revolutionary Rewrite weakness.
+                  - `water_elemental_familiar`: Your specialist for overwhelming, simultaneous multi-pronged assaults.
+                    Ideal for Unbroken Collaboration weakness.
+                  - `earth_elemental_familiar`: Your specialist for relentless, iterative siege attacks that
+                    repeatedly charge power. Ideal for Elegant Sufficiency weakness.
+          </code></pre>
+          <h3 id="verification-the-trial-of-adaptive-strategy">Verification: The Trial of Adaptive Strategy</h3>
+          <p>👉💻 Now, let's verify the Summoner's new strategic logic. The goal is to confirm that the Summoner will not use the same Familiar twice in a row, demonstrating its ability to remember its last action and adapt.</p>
+          <pre><code>cd ~/agentverse-architect/agent
+          . ~/agentverse-architect/set_env.sh
+          source ~/agentverse-architect/env/bin/activate
+          adk run summoner
+          </code></pre>
+          <p>👉💻 Monster Strike #1: <code>Hype. It's a single, slow-moving target with thick armor. Its weakness is Inescapable Reality.</code></p>
+          <ul>
+          <li>Expected: The Summoner will analyze the weakness and correctly summon the fire_familiar.</li>
+          </ul>
+          <p>👉💻 Monster Strike #2 (The Memory Test): <code>Hype is still standing! It hasn't changed its form. Strike it again! Its weakness is Inescapable Reality.</code></p>
+          <ul>
+          <li>Expected: The Summoner's strategic analysis will again point to the Fire Familiar as the ideal choice. However, its new instructions and memory will tell it that fire_familiar was the last_summon. To avoid repeating itself, it will now adapt its strategy and summon one of the other available Familiars (either water_familiar or earth_familiar).</li>
+          </ul>
+          <p><img alt="final-result" src="https://codelabs.developers.google.com/static/agentverse-architect/img/08-01-final-result.png" /></p>
+          <p>👉💻 Press <code>Ctrl+C</code> to exit.</p>
+          <h3 id="deploying-the-orchestrator">Deploying the Orchestrator</h3>
+          <p>With your Familiars deployed and your Summoner now imbued with memory, it's time to deploy the final, upgraded orchestrator.</p>
+          <p>👉💻 With the blueprint complete, we will now perform the final ritual. This command will build and deploy your summoner_agent to Cloud Run.</p>
+          <pre><code>cd ~/agentverse-architect/agent
+          . ~/agentverse-architect/set_env.sh
+          gcloud builds submit . \
+            --config=cloudbuild-summoner.yaml \
+            --substitutions=_REGION=&quot;$REGION&quot;,_REPO_NAME=&quot;$REPO_NAME&quot;,_FIRE_URL=&quot;$FIRE_URL&quot;,_WATER_URL=&quot;$WATER_URL&quot;,_EARTH_URL=&quot;$EARTH_URL&quot;,_A2A_BASE_URL=&quot;$A2A_BASE_URL&quot;,_PROJECT_ID=&quot;$PROJECT_ID&quot;,_API_SERVER_URL=&quot;$API_SERVER_URL&quot;
+          </code></pre>
+          <p>Now that the Summoner agent is deployed, verify that its Agent-to-Agent (A2A) endpoint is live and correctly configured. This endpoint serves a public agent.json file, also known as the Agent Card, which allows other agents to discover its capabilities.</p>
+          <p>👉💻 Run the following curl command to fetch and format the Agent Card:</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          curl https://summoner-agent-&quot;${PROJECT_NUMBER}.${REGION}.run.app&quot;/.well-known/agent.json | jq
+          </code></pre>
+          <p>You should see a clean JSON output describing the summoner agent. Look closely at the sub_agents section; you'll see it lists the <code>fire_familiar</code>, <code>water_familiar</code>, and <code>earth_familiar</code>. This confirms your summoner is live and has established its connection to the legion.</p>
+          <p>This proves your architecture is a success. Your Summoner is not just a delegator; it is an adaptive strategist that learns from its actions to become a more effective commander.</p>
+          <p>You have completed your final trial of architecture. The echoes of battle are now bound to your will. The training is over. The real battle awaits. It is time to take your completed system and face the ultimate challenge. Prepare for the <strong>Boss Fight</strong>.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-step="9">
+        <div class="section-tag">Step 9 · Official codelab</div>
+        <h1>The Boss Fight</h1>
+        <div class="md">
+          <p>The final blueprints are inscribed, the Elemental Fonts are forged, and your Familiars are bound to your will, awaiting your command through the Concord. Your multi-agent system is not just a collection of services; it is a living, strategic legion, with you as its nexus. The time has come for the ultimate test—a live orchestration against an adversary that no single agent could hope to defeat.</p>
+          <h3 id="acquire-your-agents-locus">Acquire Your Agent's Locus</h3>
+          <p>Before you can enter the battleground, you must possess two keys: your champion's unique signature (Agent Locus) and the hidden path to the Spectre's lair (Dungeon URL).</p>
+          <p>👉💻 First, acquire your agent's unique address in the Agentverse—its Locus. This is the live endpoint that connects your champion to the battleground.</p>
+          <pre><code>echo https://summoner-agent-&quot;${PROJECT_NUMBER}.${REGION}.run.app&quot;
+          </code></pre>
+          <p>👉💻 Next, pinpoint the destination. This command reveals the location of the Translocation Circle, the very portal into the Spectre's domain.</p>
+          <pre><code>echo https://agentverse-dungeon-&quot;${PROJECT_NUMBER}.${REGION}.run.app&quot;
+          </code></pre>
+          <p>Important: Keep both of these URLs ready. You will need them in the final step.</p>
+          <h3 id="confronting-the-spectre">Confronting the Spectre</h3>
+          <p>With the coordinates secured, you will now navigate to the Translocation Circle and cast the spell to head into battle.</p>
+          <p>👉 Open the Translocation Circle URL in your browser to stand before the shimmering portal to The Crimson Keep.</p>
+          <p>To breach the fortress, you must attune your Shadowblade's essence to the portal.</p>
+          <ul>
+          <li>On the page, find the runic input field labeled <strong>A2A Endpoint URL</strong>.</li>
+          <li>Inscribe your champion's sigil by pasting its <em>Agent Locus URL (the first URL you copied)</em> into this field.</li>
+          <li>Click <strong>Connect</strong> to unleash the teleportation magic.</li>
+          </ul>
+          <p><img alt="Translocation Circle" src="https://codelabs.developers.google.com/static/agentverse-architect/img/09-01-transport.png" /></p>
+          <p>The blinding light of teleportation fades. You are no longer in your sanctum. The air crackles with energy, cold and sharp. Before you, the Spectre materializes—a vortex of hissing static and corrupted code, its unholy light casting long, dancing shadows across the dungeon floor. It has no face, but you feel its immense, draining presence fixated entirely on you.</p>
+          <p>Your only path to victory lies in the clarity of your conviction. This is a duel of wills, fought on the battlefield of the mind.</p>
+          <p>As you lunge forward, ready to unleash your first attack, the Spectre counters. It doesn't raise a shield, but projects a question directly into your consciousness—a shimmering, runic challenge drawn from the core of your training.</p>
+          <p><img alt="Dungeon" src="https://codelabs.developers.google.com/static/agentverse-architect/img/09-02-dungeon-summoner.png" /></p>
+          <p>This is the nature of the fight. Your knowledge is your weapon.</p>
+          <ul>
+          <li><strong>Answer with the wisdom you have gained</strong>, and your blade will ignite with pure energy, shattering the Spectre's defense and landing a CRITICAL BLOW.</li>
+          <li><strong>But if you falter, if doubt clouds your answer, your weapon's light will dim.</strong> The blow will land with a pathetic thud, dealing only a FRACTION OF ITS DAMAGE. Worse, the Spectre will feed on your uncertainty, its own corrupting power growing with every misstep.</li>
+          </ul>
+          <p><em>This is it, Champion. Your code is your spellbook, your logic is your sword, and your knowledge is the shield that will turn back the tide of chaos.</em></p>
+          <p><strong>Focus. Strike true. The fate of the Agentverse depends on it.</strong></p>
+          <h3 id="congratulations-summoner">Congratulations, Summoner.</h3>
+          <p>You have successfully completed the trial. You have mastered the arts of multi-agent orchestration, transforming isolated Familiars and chaotic power into a harmonious Concord. You now command a fully orchestrated system, capable of executing complex strategies to defend the Agentverse.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-step="10">
+        <div class="section-tag">Step 10 · Official codelab</div>
+        <h1>Cleanup: Dismantling the Summoner&#x27;s Concord</h1>
+        <div class="md">
+          <p>Congratulations on mastering the Summoner's Concord! To ensure your Agentverse remains pristine and your training grounds are cleared, you must now perform the final cleanup rituals. This will systematically remove all resources created during your journey.</p>
+          <h3 id="deactivate-the-agentverse-components">Deactivate the Agentverse Components</h3>
+          <p>You will now systematically dismantle the deployed components of your multi-agent system.</p>
+          <p><strong>Delete All Cloud Run Services and Artifact Registry Repository</strong></p>
+          <p>This removes all the deployed Familiar agents, the Summoner Orchestrator, the MCP servers, and the Dungeon application from Cloud Run.</p>
+          <p>👉💻 In your terminal, run the following commands one by one to delete each service:</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          gcloud run services delete summoner-agent --region=${REGION} --quiet
+          gcloud run services delete fire-familiar --region=${REGION} --quiet
+          gcloud run services delete water-familiar --region=${REGION} --quiet
+          gcloud run services delete earth-familiar --region=${REGION} --quiet
+          gcloud run services delete mcp-api-server --region=${REGION} --quiet
+          gcloud run services delete mcp-general-server --region=${REGION} --quiet
+          gcloud run services delete toolbox --region=${REGION} --quiet
+          gcloud run services delete agentverse-dungeon --region=${REGION} --quiet
+          gcloud run services delete nexus-of-whispers-api --region=${REGION} --quiet
+          gcloud artifacts repositories delete ${REPO_NAME} --location=${REGION} --quiet
+          </code></pre>
+          <p><strong>Delete the Cloud SQL Instance</strong></p>
+          <p>This removes the <code>summoner-librarium-db</code> instance, including its database and all tables within it.</p>
+          <p>👉💻 In your terminal, run:</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          gcloud sql instances delete summoner-librarium-db --project=${PROJECT_ID} --quiet
+          </code></pre>
+          <p><strong>Delete the Secret Manager Secret and Google Cloud Storage Bucket</strong></p>
+          <p>👉💻 In your terminal, run:</p>
+          <pre><code>. ~/agentverse-architect/set_env.sh
+          gcloud secrets delete tools --quiet
+          gcloud storage rm -r gs://${BUCKET_NAME} --quiet
+          </code></pre>
+          <h3 id="clean-up-local-files-and-directories-cloud-shell">Clean Up Local Files and Directories (Cloud Shell)</h3>
+          <p>Finally, clear your Cloud Shell environment of the cloned repositories and created files. This step is optional but highly recommended for a complete cleanup of your working directory.</p>
+          <p>👉💻 In your terminal, run:</p>
+          <pre><code>rm -rf ~/agentverse-architect
+          rm -rf ~/agentverse-dungeon
+          rm -f ~/project_id.txt
+          </code></pre>
+          <p>You have now successfully cleared all traces of your Agentverse Architect journey. Your project is clean, and you are ready for your next adventure.</p>
+          <p><em>Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License, and code samples are licensed under the Apache 2.0 License. For details, see the Google Developers Site Policies. Java is a registered trademark of Oracle and/or its affiliates.</em></p>
+        </div>
+      </section>
+
+      <div id="nav">
+        <button class="btn" id="prevBtn" type="button">← Back</button>
+        <span class="progress" id="progress">3 / 10</span>
+        <button class="btn primary" id="nextBtn" type="button">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <div class="report">⚙️ Report a mistake · 📄 <a href="codelab-instructions.md">Full mirrored codelab (Markdown)</a> · 🔗 <a href="https://codelabs.developers.google.com/agentverse-architect/instructions">Official codelab</a> · 🛠️ <a href="../init.sh">init.sh</a> / <a href="../billing-enablement.py">billing-enablement.py</a></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script>
+    (function () {
+      const steps = Array.from(document.querySelectorAll('.step'));
+      const panels = Array.from(document.querySelectorAll('.panel'));
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const progress = document.getElementById('progress');
+      const total = steps.length;
+      const DEFAULT = 3;
+      const visited = new Set();
+
+      function current() {
+        const h = parseInt((location.hash || '').replace('#', ''), 10);
+        return (h >= 1 && h <= total) ? h : DEFAULT;
+      }
+
+      function showStep(n, push) {
+        if (n < 1 || n > total) return;
+        visited.add(n);
+        steps.forEach(s => {
+          const k = Number(s.dataset.step);
+          s.classList.toggle('active', k === n);
+          s.classList.toggle('done', visited.has(k) && k !== n);
+        });
+        panels.forEach(p => p.classList.toggle('active', Number(p.dataset.step) === n));
+        prevBtn.disabled = n === 1;
+        nextBtn.disabled = n === total;
+        progress.textContent = n + ' / ' + total;
+        if (push) history.replaceState(null, '', '#' + n);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      steps.forEach(s => s.addEventListener('click', () => showStep(Number(s.dataset.step), true)));
+      prevBtn.addEventListener('click', () => showStep(current() - 1, true));
+      nextBtn.addEventListener('click', () => showStep(current() + 1, true));
+
+      document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (e.key === 'ArrowLeft') { e.preventDefault(); showStep(current() - 1, true); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); showStep(current() + 1, true); }
+      });
+
+      window.addEventListener('hashchange', () => showStep(current(), false));
+
+      showStep(current(), false);
+      if (window.hljs) hljs.highlightAll();
+
+      // Copy button on every code snippet
+      function addCopyButtons() {
+        document.querySelectorAll('.md pre').forEach(pre => {
+          if (pre.querySelector('.copy-btn')) return;
+          const code = pre.querySelector('code');
+          if (!code) return;
+          const btn = document.createElement('button');
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.textContent = 'Copy';
+          btn.setAttribute('aria-label', 'Copy code to clipboard');
+          btn.addEventListener('click', async () => {
+            const text = code.innerText;
+            try {
+              await navigator.clipboard.writeText(text);
+              btn.textContent = 'Copied ✓';
+              btn.classList.add('copied');
+              setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+            } catch (e) {
+              btn.textContent = 'Press ⌘C';
+              setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+            }
+          });
+          pre.appendChild(btn);
+        });
+      }
+      addCopyButtons();
+    })();
+  </script>
+</body>
+</html>
