@@ -76,5 +76,9 @@ substitutions:
   _API_SERVER_URL: ""
   _PROJECT_ID: ""
 
-options:
-  machineType: 'E2_HIGHCPU_8'
+# NOTE: do NOT pin `options.machineType` here. Some Qwiklabs projects carry an
+# org policy that rejects non-default Cloud Build machine types, failing with
+# "project is unable to specify a machine type". The default machine type is
+# sufficient for these small images and works everywhere.
+# options:
+#   machineType: 'E2_HIGHCPU_8'
