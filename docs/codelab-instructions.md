@@ -446,7 +446,7 @@ sources:
   summoner-librarium:
     kind: cloud-sql-postgres
     project: "YOUR_PROJECT_ID"
-    region: "us-central1"
+    region: "YOUR_REGION"  # run `echo $REGION` (set by set_env.sh) and paste it here
     instance: "summoner-librarium-db"
     database: "familiar_grimoire"
     user: "summoner"

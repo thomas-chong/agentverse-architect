@@ -9,12 +9,21 @@ prev/next navigation, keyboard arrows, and hash routing.
 
 Re-run after editing codelab-instructions.md:
     python3 docs/generate_html.py
+
+Requires markdown-it-py (pip install markdown-it-py).
 """
 import re
 import sys
 import html as html_lib
 from pathlib import Path
-import markdown
+
+try:
+    from markdown_it import MarkdownIt
+except ModuleNotFoundError:
+    sys.exit(
+        "markdown-it-py is required to build the codelab HTML.\n"
+        "Install it with:  pip install markdown-it-py"
+    )
 
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "codelab-instructions.md"
@@ -51,11 +60,19 @@ def split_sections(text: str):
         yield n, title, body
 
 
+# Python-Markdown's fenced_code is a preprocessor: it scans raw lines before the
+# blockquote syntax is stripped, so ``` fences inside a "> " blockquote are never
+# recognised. The PATCHED callout in Section 3 is exactly that shape, and its bash
+# "# comments" were being parsed as <h1> headings. markdown-it-py is CommonMark
+# compliant and nests fences inside blockquotes correctly. Emits the same
+# `language-*` class highlight.js expects.
+_MD = MarkdownIt("commonmark", {"html": True, "linkify": False}).enable(
+    ["table", "strikethrough"]
+)
+
+
 def render(body_md: str) -> str:
-    return markdown.markdown(
-        body_md,
-        extensions=["fenced_code", "tables", "attr_list", "sane_lists", "toc"],
-    )
+    return _MD.render(body_md)
 
 
 def build_sidebar(steps):
