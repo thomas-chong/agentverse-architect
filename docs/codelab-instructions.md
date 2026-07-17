@@ -107,17 +107,21 @@ chmod +x ~/agentverse-dungeon/start.sh
 
 > ### 🛠️ PATCHED — Run the setup script
 >
-> **This is the only step we modified.** The upstream `./init.sh` assumes you can run `gcloud projects create`. In a **workshop / Qwiklabs** setting, Google **assigns** you a project (e.g. `qwiklabs-gcp-01-…`) that you cannot — and should not — create, and which already has billing enabled. Our patched `init.sh` + `billing-enablement.py` detect and reuse that assigned project instead of failing.
+> **This is the only step we modified.** The upstream `./init.sh` assumes you can run `gcloud projects create`. In a **workshop / Qwiklabs** setting, Google **assigns** you a project (e.g. `qwiklabs-gcp-04-…`) that you cannot — and should not — create, and which already has billing enabled. Our patched `init.sh` + `billing-enablement.py` detect and reuse that assigned project instead of failing.
 >
-> **If you have an assigned / Qwiklabs project, run this INSTEAD of the original step below:**
+> **In Qwiklabs Cloud Shell, just run `./init.sh` — no manual project setup needed.** Cloud Shell already exports `GOOGLE_CLOUD_PROJECT` with your assigned project, and the patched `init.sh` picks it up automatically:
 >
 > ```bash
-> # Point gcloud (or export the env var) at your ASSIGNED project first.
-> # Replace YOUR_ASSIGNED_PROJECT_ID with the ID Google assigned you
-> # (e.g. a qwiklabs-gcp-##-######### project from your workshop console).
-> gcloud config set project YOUR_ASSIGNED_PROJECT_ID
-> # (equivalently:  export GOOGLE_CLOUD_PROJECT=YOUR_ASSIGNED_PROJECT_ID)
+> cd ~/agentverse-architect
+> ./init.sh
+> ```
 >
+> You should see it print `Found project ID in $GOOGLE_CLOUD_PROJECT: qwiklabs-gcp-…`, verify the project, detect the Qwiklabs project, and then `Success: Billing is already enabled on project …` — finishing cleanly without the upstream billing loop.
+>
+> **If you are NOT in Cloud Shell** (or want to override the auto-detected project), export it first:
+>
+> ```bash
+> export GOOGLE_CLOUD_PROJECT=YOUR_ASSIGNED_PROJECT_ID
 > cd ~/agentverse-architect
 > ./init.sh
 > ```
@@ -128,6 +132,10 @@ chmod +x ~/agentverse-dungeon/start.sh
 > 3. `~/project_id.txt`
 >
 > …and only falls back to `projects create` if none resolve. The patched `billing-enablement.py` also checks `get_project_billing_info` first and exits cleanly when billing is already enabled (the Qwiklabs case), instead of looping on `list_billing_accounts`.
+>
+> > **Heads-up — ignore these warnings:** During the lab you'll see repeated lines like `Regional Access Boundary HTTP request failed … Gaia id not found for email student-XX-…@qwiklabs.net`. This is harmless Qwiklabs backend noise — every command still succeeds (watch the final status line). You can safely ignore it.
+> >
+> > **Region note:** `set_env.sh` resolves `REGION` from the project's `gcp.resourceLocations` org policy (not the Cloud Shell zone), preferring `us-central1`. If Artifact Registry / Cloud Run creation ever fails with `violates organization policy`, your project is pinned to a different region — run `gcloud org-policies describe gcp.resourceLocations --project=$PROJECT_ID --effective` to see the allowed regions, then `gcloud config set compute/region <REGION> && . ./set_env.sh`.
 >
 > **↓ Original upstream step (for self-service accounts that need to create a project) ↓**
 

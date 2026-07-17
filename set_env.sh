@@ -69,37 +69,55 @@ export GOOGLE_GENAI_USE_VERTEXAI="TRUE"
 echo "Exported GOOGLE_GENAI_USE_VERTEXAI=$GOOGLE_GENAI_USE_VERTEXAI"
 
 # 10. Export REGION and GOOGLE_CLOUD_LOCATION
-# Qwiklabs / Google Skills assigns each account to a potentially different
-# region, so resolve it dynamically instead of hardcoding us-central1.
+# IMPORTANT: do NOT derive the region from the Cloud Shell VM's zone — that zone
+# is where Cloud Shell happens to run, NOT where your project is allowed to create
+# resources. Qwiklabs projects carry a `gcp.resourceLocations` org policy that
+# restricts the allowed regions; deploying to the Cloud Shell zone fails with
+# "Location ... violates organization policy". Resolve from an explicit override,
+# then the effective org policy, then a fallback.
 if [ -z "$REGION" ]; then
   REGION=""
 
-  # (a) Honour gcloud's configured compute/region (Cloud Shell pre-sets this
-  #     to the region the lab/session is running in).
+  # (a) Explicit override via gcloud config compute/region.
   _CFG_REGION=$(gcloud config get-value compute/region 2>/dev/null)
   if [ -n "$_CFG_REGION" ] && [ "$_CFG_REGION" != "(unset)" ]; then
     REGION="$_CFG_REGION"
     echo "Resolved REGION from gcloud compute/region: $REGION"
   fi
 
-  # (b) Derive from the Cloud Shell instance's own zone metadata.
+  # (b) Effective resource-location org policy on the project.
   if [ -z "$REGION" ]; then
-    _ZONE=$(curl -s -H "Metadata-Flavor: Google" \
-      "http://metadata.google.internal/computeMetadata/v1/instance/zone" 2>/dev/null \
-      | sed 's#.*/##')
-    if [ -n "$_ZONE" ]; then
-      # zone looks like "us-central1-a" -> region "us-central1"
-      REGION=$(echo "$_ZONE" | sed -E 's/-[a-z]$//')
-      echo "Resolved REGION from Cloud Shell zone ($_ZONE): $REGION"
+    _ALLOWED=$(gcloud org-policies describe gcp.resourceLocations \
+      --project="$PROJECT_ID" --effective \
+      --format='value(spec.values.allowedValues)' 2>/dev/null || true)
+    # Prefer us-central1 (the region this codelab is designed for) if allowed...
+    if echo "$_ALLOWED" | grep -qE '(^|,)in:us-central1-|(^|,)us-central1($|,)'; then
+      REGION="us-central1"
+    else
+      # ...otherwise take the first allowed region prefix/value.
+      REGION=$(echo "$_ALLOWED" | tr ',' '\n' \
+        | grep -Eo 'in:[a-z]+-[a-z]+[0-9]-$' | head -1 | sed 's/^in://; s/-$//')
+      if [ -z "$REGION" ]; then
+        REGION=$(echo "$_ALLOWED" | tr ',' '\n' \
+          | grep -Eo '^[a-z]+-[a-z]+[0-9]$' | head -1)
+      fi
+    fi
+    if [ -n "$REGION" ]; then
+      echo "Resolved REGION from org policy gcp.resourceLocations: $REGION"
     fi
   fi
 
-  # (c) Last-resort fallback.
+  # (c) Last-resort fallback. This is the region the codelab is built around and
+  #     that Qwiklabs projects for this lab typically allow.
   if [ -z "$REGION" ]; then
     REGION="us-central1"
-    echo "WARNING: could not detect a region; defaulting REGION=$REGION."
-    echo "If your account is assigned to a different region, run:"
-    echo "  gcloud config set compute/region <YOUR_REGION> && . ./set_env.sh"
+    echo "WARNING: could not detect an allowed region; defaulting to $REGION."
+    echo "If Artifact Registry / Cloud Run creation fails with"
+    echo "'violates organization policy', find your allowed region with:"
+    echo "  gcloud org-policies describe gcp.resourceLocations \\"
+    echo "    --project=\$PROJECT_ID --effective \\"
+    echo "    --format='value(spec.values.allowedValues)'"
+    echo "then: gcloud config set compute/region <ALLOWED_REGION> && . ./set_env.sh"
   fi
 fi
 
