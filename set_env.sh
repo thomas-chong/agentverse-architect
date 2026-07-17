@@ -86,22 +86,30 @@ _orgpolicy_regions() {
     --format='value(listPolicy.allowedValues)' 2>/dev/null
 }
 
+# Normalise the allowed-values blob into one value per line. gcloud's
+# --format='value(...)' joins repeated values with ';'; some policies use ',';
+# tolerate both plus surrounding whitespace.
+_normalize_allowed() {
+  echo "$1" | tr ';,' '\n\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$'
+}
+
 # Return 0 if region $1 is permitted by allowed-list $2.
 _region_ok() {
   local r="$1" allowed="$2"
   [ -n "$allowed" ] || return 0   # empty/unreadable policy => treat as unrestricted
-  echo "$allowed" | tr ',' '\n' | grep -qE "^in:${r}-$|^${r}$"
+  _normalize_allowed "$allowed" | grep -qxE "in:${r}-|${r}"
 }
 
-# Pick the best region purely from the org policy (prefer us-central1).
+# Pick a usable single GCP region from the policy, preferring common ones.
+# Excludes multi-regions (US/EU/nam5), zones (us-west1-a), and AWS/Azure values.
 _pick_from_policy() {
-  local allowed="$1" r=""
-  if _region_ok us-central1 "$allowed"; then echo "us-central1"; return; fi
-  r=$(echo "$allowed" | tr ',' '\n' \
-        | grep -Eo 'in:[a-z]+-[a-z]+[0-9]-$' | head -1 | sed 's/^in://; s/-$//')
-  [ -n "$r" ] && { echo "$r"; return; }
-  r=$(echo "$allowed" | tr ',' '\n' | grep -Eo '^[a-z]+-[a-z]+[0-9]$' | head -1)
-  echo "${r}"
+  local allowed="$1" regions pref first
+  regions=$(_normalize_allowed "$allowed" | grep -E '^[a-z]+-[a-z]+[0-9]$' | grep -vE '^(aws|azure)-')
+  for pref in us-central1 us-west1 us-east1 us-east4 us-central2 europe-west1 asia-southeast1; do
+    if echo "$regions" | grep -qx "$pref"; then echo "$pref"; return; fi
+  done
+  first=$(echo "$regions" | head -1)
+  echo "${first}"
 }
 
 ALLOWED=$(_orgpolicy_regions)
