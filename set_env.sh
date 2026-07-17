@@ -78,12 +78,12 @@ echo "Exported GOOGLE_GENAI_USE_VERTEXAI=$GOOGLE_GENAI_USE_VERTEXAI"
 
 # Read the allowed-values list (e.g. "in:us-central1-,in:us-central2-").
 _orgpolicy_regions() {
-  gcloud org-policies describe gcp.resourceLocations \
-    --project="$PROJECT_ID" --effective \
-    --format='value(spec.values.allowedValues)' 2>/dev/null \
-  || gcloud resource-manager org-policies describe gcp.resourceLocations \
-    --effective --project="$PROJECT_ID" \
-    --format='value(listPolicy.allowedValues)' 2>/dev/null
+  CLOUDSDK_CORE_DISABLE_PROMPTS=1 gcloud org-policies describe gcp.resourceLocations \
+    --project="$PROJECT_ID" --effective --quiet \
+    --format='value(spec.values.allowedValues)' </dev/null 2>/dev/null \
+  || CLOUDSDK_CORE_DISABLE_PROMPTS=1 gcloud resource-manager org-policies describe gcp.resourceLocations \
+    --effective --project="$PROJECT_ID" --quiet \
+    --format='value(listPolicy.allowedValues)' </dev/null 2>/dev/null
 }
 
 # Normalise the allowed-values blob into one value per line. gcloud's
@@ -130,7 +130,7 @@ if [ -z "$ALLOWED" ]; then
 else
   # We have a policy. If the current REGION (env or gcloud config) isn't allowed,
   # discard it and pick a valid one.
-  _CFG_REGION=$(gcloud config get-value compute/region 2>/dev/null)
+  _CFG_REGION=$(CLOUDSDK_CORE_DISABLE_PROMPTS=1 gcloud config get-value compute/region --quiet </dev/null 2>/dev/null)
   if [ -n "$REGION" ] && _region_ok "$REGION" "$ALLOWED"; then
     : # keep the explicit, policy-valid $REGION
   elif [ -n "$_CFG_REGION" ] && [ "$_CFG_REGION" != "(unset)" ] && _region_ok "$_CFG_REGION" "$ALLOWED"; then
@@ -155,7 +155,7 @@ fi
 export REGION
 export GOOGLE_CLOUD_LOCATION="$REGION"
 # Persist the validated region into gcloud config so subsequent gcloud calls agree.
-gcloud config set compute/region "$REGION" >/dev/null 2>&1 || true
+CLOUDSDK_CORE_DISABLE_PROMPTS=1 gcloud config set compute/region "$REGION" --quiet </dev/null >/dev/null 2>&1 || true
 echo "Exported REGION=$REGION"
 echo "Exported GOOGLE_CLOUD_LOCATION=$GOOGLE_CLOUD_LOCATION"
 
