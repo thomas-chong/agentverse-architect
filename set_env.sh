@@ -69,61 +69,84 @@ export GOOGLE_GENAI_USE_VERTEXAI="TRUE"
 echo "Exported GOOGLE_GENAI_USE_VERTEXAI=$GOOGLE_GENAI_USE_VERTEXAI"
 
 # 10. Export REGION and GOOGLE_CLOUD_LOCATION
-# IMPORTANT: do NOT derive the region from the Cloud Shell VM's zone — that zone
-# is where Cloud Shell happens to run, NOT where your project is allowed to create
-# resources. Qwiklabs projects carry a `gcp.resourceLocations` org policy that
-# restricts the allowed regions; deploying to the Cloud Shell zone fails with
-# "Location ... violates organization policy". Resolve from an explicit override,
-# then the effective org policy, then a fallback.
-if [ -z "$REGION" ]; then
-  REGION=""
+# Resolve against the project's effective gcp.resourceLocations org policy — the
+# source of truth for which regions Qwiklabs permits. We deliberately do NOT
+# trust a previously-exported $REGION or gcloud compute/region blindly: an
+# earlier run may have cached a region (e.g. us-east1 from the Cloud Shell zone)
+# that the org policy rejects, which makes Artifact Registry / Cloud Run / Cloud
+# SQL creation fail with "Location ... violates organization policy".
 
-  # (a) Explicit override via gcloud config compute/region.
-  _CFG_REGION=$(gcloud config get-value compute/region 2>/dev/null)
-  if [ -n "$_CFG_REGION" ] && [ "$_CFG_REGION" != "(unset)" ]; then
-    REGION="$_CFG_REGION"
-    echo "Resolved REGION from gcloud compute/region: $REGION"
-  fi
+# Read the allowed-values list (e.g. "in:us-central1-,in:us-central2-").
+_orgpolicy_regions() {
+  gcloud org-policies describe gcp.resourceLocations \
+    --project="$PROJECT_ID" --effective \
+    --format='value(spec.values.allowedValues)' 2>/dev/null \
+  || gcloud resource-manager org-policies describe gcp.resourceLocations \
+    --effective --project="$PROJECT_ID" \
+    --format='value(listPolicy.allowedValues)' 2>/dev/null
+}
 
-  # (b) Effective resource-location org policy on the project.
-  if [ -z "$REGION" ]; then
-    _ALLOWED=$(gcloud org-policies describe gcp.resourceLocations \
-      --project="$PROJECT_ID" --effective \
-      --format='value(spec.values.allowedValues)' 2>/dev/null || true)
-    # Prefer us-central1 (the region this codelab is designed for) if allowed...
-    if echo "$_ALLOWED" | grep -qE '(^|,)in:us-central1-|(^|,)us-central1($|,)'; then
-      REGION="us-central1"
-    else
-      # ...otherwise take the first allowed region prefix/value.
-      REGION=$(echo "$_ALLOWED" | tr ',' '\n' \
+# Return 0 if region $1 is permitted by allowed-list $2.
+_region_ok() {
+  local r="$1" allowed="$2"
+  [ -n "$allowed" ] || return 0   # empty/unreadable policy => treat as unrestricted
+  echo "$allowed" | tr ',' '\n' | grep -qE "^in:${r}-$|^${r}$"
+}
+
+# Pick the best region purely from the org policy (prefer us-central1).
+_pick_from_policy() {
+  local allowed="$1" r=""
+  if _region_ok us-central1 "$allowed"; then echo "us-central1"; return; fi
+  r=$(echo "$allowed" | tr ',' '\n' \
         | grep -Eo 'in:[a-z]+-[a-z]+[0-9]-$' | head -1 | sed 's/^in://; s/-$//')
-      if [ -z "$REGION" ]; then
-        REGION=$(echo "$_ALLOWED" | tr ',' '\n' \
-          | grep -Eo '^[a-z]+-[a-z]+[0-9]$' | head -1)
-      fi
-    fi
+  [ -n "$r" ] && { echo "$r"; return; }
+  r=$(echo "$allowed" | tr ',' '\n' | grep -Eo '^[a-z]+-[a-z]+[0-9]$' | head -1)
+  echo "${r}"
+}
+
+ALLOWED=$(_orgpolicy_regions)
+
+if [ -z "$ALLOWED" ]; then
+  # Policy couldn't be read. Don't trust a possibly-stale $REGION/gcloud config;
+  # fall back to the codelab's canonical region.
+  if [ -n "$REGION" ]; then
+    echo "Discarding previously-set REGION='$REGION' (could not verify against org policy)."
+  fi
+  REGION="us-central1"
+  echo "WARNING: could not read gcp.resourceLocations; defaulting to us-central1."
+  echo "If creation fails with 'violates organization policy', find your region:"
+  echo "  gcloud org-policies describe gcp.resourceLocations \\"
+  echo "    --project=\$PROJECT_ID --effective \\"
+  echo "    --format='value(spec.values.allowedValues)'"
+  echo "then: gcloud config set compute/region <ALLOWED_REGION> && . ./set_env.sh"
+else
+  # We have a policy. If the current REGION (env or gcloud config) isn't allowed,
+  # discard it and pick a valid one.
+  _CFG_REGION=$(gcloud config get-value compute/region 2>/dev/null)
+  if [ -n "$REGION" ] && _region_ok "$REGION" "$ALLOWED"; then
+    : # keep the explicit, policy-valid $REGION
+  elif [ -n "$_CFG_REGION" ] && [ "$_CFG_REGION" != "(unset)" ] && _region_ok "$_CFG_REGION" "$ALLOWED"; then
+    echo "Discarding stale REGION='$REGION'; resolved from gcloud compute/region: $_CFG_REGION"
+    REGION="$_CFG_REGION"
+  else
     if [ -n "$REGION" ]; then
-      echo "Resolved REGION from org policy gcp.resourceLocations: $REGION"
+      echo "Discarding stale REGION='$REGION' — not permitted by gcp.resourceLocations ($ALLOWED)."
+    elif [ -n "$_CFG_REGION" ] && [ "$_CFG_REGION" != "(unset)" ]; then
+      echo "Discarding stale gcloud compute/region='$_CFG_REGION' — not permitted by gcp.resourceLocations."
     fi
+    REGION=$(_pick_from_policy "$ALLOWED")
+    [ -n "$REGION" ] && echo "Resolved REGION from org policy gcp.resourceLocations: $REGION (allowed: $ALLOWED)"
   fi
 
-  # (c) Last-resort fallback. This is the region the codelab is built around and
-  #     that Qwiklabs projects for this lab typically allow.
   if [ -z "$REGION" ]; then
     REGION="us-central1"
-    echo "WARNING: could not detect an allowed region; defaulting to $REGION."
-    echo "If Artifact Registry / Cloud Run creation fails with"
-    echo "'violates organization policy', find your allowed region with:"
-    echo "  gcloud org-policies describe gcp.resourceLocations \\"
-    echo "    --project=\$PROJECT_ID --effective \\"
-    echo "    --format='value(spec.values.allowedValues)'"
-    echo "then: gcloud config set compute/region <ALLOWED_REGION> && . ./set_env.sh"
+    echo "WARNING: org policy listed no usable region; defaulting to us-central1."
   fi
 fi
 
 export REGION
 export GOOGLE_CLOUD_LOCATION="$REGION"
-# Persist into gcloud config so subsequent gcloud calls agree on a region.
+# Persist the validated region into gcloud config so subsequent gcloud calls agree.
 gcloud config set compute/region "$REGION" >/dev/null 2>&1 || true
 echo "Exported REGION=$REGION"
 echo "Exported GOOGLE_CLOUD_LOCATION=$GOOGLE_CLOUD_LOCATION"
