@@ -31,6 +31,18 @@ fi
 
 
 
+# Silence the harmless Qwiklabs backend noise gcloud prints to stderr on nearly
+# every call ("Regional Access Boundary HTTP request failed … Gaia id not found
+# for email student-XX-…@qwiklabs.net"). It is a non-retryable 404 from an
+# internal lookup of the ephemeral student account and does not affect the
+# command's result. We filter only those lines and pass everything else (real
+# errors included) through unchanged. `command gcloud` avoids recursion.
+if [ -n "${BASH_VERSION:-}" ] || [ -n "${ZSH_VERSION:-}" ]; then
+  gcloud() {
+    command gcloud "$@" 2> >(grep -vE 'Regional Access Boundary HTTP request failed|Gaia id not found for email' >&2)
+  }
+fi
+
 # 1. Check if project file exists
 PROJECT_FILE_PATH=$(eval echo $PROJECT_FILE) # Expand potential ~
 if [ ! -f "$PROJECT_FILE_PATH" ]; then
