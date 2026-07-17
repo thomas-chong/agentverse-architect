@@ -31,15 +31,21 @@ fi
 
 
 
-# Silence the harmless Qwiklabs backend noise gcloud prints to stderr on nearly
-# every call ("Regional Access Boundary HTTP request failed … Gaia id not found
-# for email student-XX-…@qwiklabs.net"). It is a non-retryable 404 from an
-# internal lookup of the ephemeral student account and does not affect the
-# command's result. We filter only those lines and pass everything else (real
-# errors included) through unchanged. `command gcloud` avoids recursion.
+# Silence the harmless Qwiklabs backend noise gcloud prints on nearly every
+# call ("Regional Access Boundary HTTP request failed … Gaia id not found for
+# email student-XX-…@qwiklabs.net"). It is a non-retryable 404 from an internal
+# lookup of the ephemeral student account and does not affect the command's
+# result. gcloud's transport writes it to BOTH stdout and stderr, so we filter
+# both streams, dropping only those exact lines. `command gcloud` avoids
+# recursion; the function returns gcloud's real exit status.
 if [ -n "${BASH_VERSION:-}" ] || [ -n "${ZSH_VERSION:-}" ]; then
+  _gcloud_quiet_filter() {
+    grep -vE 'Regional Access Boundary HTTP request failed|Gaia id not found for email'
+  }
   gcloud() {
-    command gcloud "$@" 2> >(grep -vE 'Regional Access Boundary HTTP request failed|Gaia id not found for email' >&2)
+    command gcloud "$@" \
+      1> >(_gcloud_quiet_filter) \
+      2> >(_gcloud_quiet_filter >&2)
   }
 fi
 
